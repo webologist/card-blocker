@@ -1,17 +1,20 @@
-CardGuard — Deploy to Netlify (2 minutes)
-=========================================
-This folder is a complete static website. To deploy:
+CardGuard — Deploy to Vercel
+============================
+This folder is a complete static website (index.html + app.js).
 
-OPTION A — Drag & drop (fastest, no account setup beyond signup)
-1. Go to https://app.netlify.com/drop
-2. Drag this entire folder (the one containing index.html) onto the page
-3. Done — Netlify gives you a live URL like https://random-name.netlify.app
-4. Optional: click "Site settings" to rename it, e.g. cardguard.netlify.app
+OPTION A — Vercel CLI (fastest, ~2 minutes)
+1. Install Node.js if you don't have it (nodejs.org)
+2. Open a terminal in this folder and run:
+      npx vercel --prod
+3. First run: it opens your browser to log in to Vercel, then asks a few
+   questions — accept the defaults (no build command, output directory ".")
+4. Done — it prints your live URL, e.g. https://cardguard.vercel.app
 
-OPTION B — Netlify CLI
-1. npm install -g netlify-cli
-2. cd into this folder
-3. netlify deploy --prod --dir .
+OPTION B — GitHub import (best if you'll keep iterating)
+1. Create a new GitHub repository and upload these files to it
+2. Go to https://vercel.com/new and import that repository
+3. Framework preset: "Other". Build command: none. Output directory: ./
+4. Click Deploy — every future push to the repo auto-deploys
 
 TEST CREDENTIALS (shown on the login page)
 - User (own number):        9876543210
@@ -20,8 +23,7 @@ TEST CREDENTIALS (shown on the login page)
 - OTP for everything:       1234
 
 NOTES
-- Data is stored in each visitor's browser (localStorage). Different
-  visitors/devices see their own data. Fine for demos and user testing.
-- Before real production: replace dummy OTP with an SMS gateway (MSG91),
-  move data to a real database (Supabase), add Razorpay for the Rs.50 fee,
-  and verify every bank's SMS number/format directly with the bank.
+- Data lives in each visitor's browser (localStorage) — good for demos.
+- Before real production: real OTPs (MSG91), a real database (Supabase),
+  Razorpay for the Rs.50 fee, and verify every bank's SMS number/format
+  directly with the bank.
