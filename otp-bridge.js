@@ -1,18 +1,11 @@
 // otp-bridge.js — real OTP via Twilio, HMAC-signed token in sessionStorage
-// app.js patched: Tb = window.__bmc_otp || "INVALID_OTP_PLACEHOLDER"
+// app.js patched: gv() checks window.__bmc_otp instead of hardcoded Tb
 (function () {
   let lastPhone = '';
   let _allowVerify = false;
-  let _approvedOtp = null; // kept in closure, not on window
 
-  // Overwrite window.__bmc_otp with a getter/setter so it can't be set externally
-  // Only our bridge can set the internal value
-  let _otpInternal = null;
-  Object.defineProperty(window, '__bmc_otp', {
-    get: () => _otpInternal,
-    set: () => {}, // ignore external sets
-    configurable: false,
-  });
+  // Initialize to null — gv() will fail until we set it after verify
+  window.__bmc_otp = null;
 
   document.addEventListener('click', async function (e) {
     const btn = e.target.closest('button');
@@ -27,8 +20,7 @@
 
       lastPhone = '+91' + digits;
       sessionStorage.removeItem('bmc_otp_token');
-      _approvedOtp = null;
-      _otpInternal = null;
+      window.__bmc_otp = null; // reset approval
 
       try {
         const res = await fetch('/api/send-otp', {
@@ -88,10 +80,11 @@
 
         if (data.success) {
           sessionStorage.removeItem('bmc_otp_token');
-          _approvedOtp = entered;
-          _otpInternal = entered; // set via closure, not via window setter
+          // Set window.__bmc_otp to the entered value BEFORE re-clicking
+          // gv() will now see: o === window.__bmc_otp → true → proceeds
+          window.__bmc_otp = entered;
           _allowVerify = true;
-          btn.click(); // re-fire — gv() runs, o === Tb ✓
+          btn.click();
         } else {
           alert(data.error || 'Incorrect OTP. Please try again.');
         }
