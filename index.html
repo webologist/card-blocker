@@ -1060,7 +1060,7 @@ function styleApp() {
 
       // Determine badge text from current step
       const stepText = h2.textContent.trim();
-      let badgeText = '📱 Log in / Register / Block';
+      let badgeText = '📱 Authenticate / Block';
       if (stepText.includes('OTP') || stepText.includes('Enter')) badgeText = '🔐 Verify your number';
       else if (stepText.includes('Add your cards'))               badgeText = '💳 Step 2 of 3';
       else if (stepText.includes('card vault') || stepText.includes('Create')) badgeText = '📱 Register free · 60 seconds';
@@ -1092,7 +1092,7 @@ function styleApp() {
     // 3b. Card h2 title
     sec.querySelectorAll('h2').forEach(h => {
       // Rename "Log in / Register" to include "/ Block"
-      if (h.textContent.trim() === 'Log in / Register') h.textContent = 'Log in / Register / Block';
+      if (h.textContent.trim() === 'Log in / Register') h.textContent = 'Authenticate / Block';
       Object.assign(h.style, {
       fontSize: '1.5rem', fontWeight: '800', color: '#111827',
       letterSpacing: '-.025em', lineHeight: '1.2', marginBottom: '1.25rem', fontFamily: INTER,
