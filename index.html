@@ -949,8 +949,8 @@ a:hover .arrow{transform:translateX(3px)}
   <div class="tool-inner">
     <div class="tool-left">
       <div class="tool-eyebrow">🚨 Card Blocker</div>
-      <h2 class="tool-title">Block your card<br>before the damage<br>is done.</h2>
-      <p class="tool-sub">Pre-filled SMS, email &amp; helpline numbers for every major Indian bank. Log in, pick your bank, and block in seconds.</p>
+      <h2 class="tool-title">Don't wait for the<br>panic call. Register<br>free — right now.</h2>
+      <p class="tool-sub">It takes 60 seconds. You’ll thank yourself the day something goes wrong.</p>
       <div class="tool-pills">
         <span class="tool-pill">Works on any phone</span>
         <span class="tool-pill">10 major Indian banks</span>
@@ -1060,7 +1060,7 @@ function styleApp() {
 
       // Determine badge text from current step
       const stepText = h2.textContent.trim();
-      let badgeText = '📱 Log in · 60 seconds';
+      let badgeText = '📱 Log in / Register / Block';
       if (stepText.includes('OTP') || stepText.includes('Enter')) badgeText = '🔐 Verify your number';
       else if (stepText.includes('Add your cards'))               badgeText = '💳 Step 2 of 3';
       else if (stepText.includes('card vault') || stepText.includes('Create')) badgeText = '📱 Register free · 60 seconds';
@@ -1090,10 +1090,14 @@ function styleApp() {
     }
 
     // 3b. Card h2 title
-    sec.querySelectorAll('h2').forEach(h => Object.assign(h.style, {
+    sec.querySelectorAll('h2').forEach(h => {
+      // Rename "Log in / Register" to include "/ Block"
+      if (h.textContent.trim() === 'Log in / Register') h.textContent = 'Log in / Register / Block';
+      Object.assign(h.style, {
       fontSize: '1.5rem', fontWeight: '800', color: '#111827',
       letterSpacing: '-.025em', lineHeight: '1.2', marginBottom: '1.25rem', fontFamily: INTER,
-    }));
+      });
+    });
 
     // 3c. Labels
     sec.querySelectorAll('label').forEach(lbl => {
