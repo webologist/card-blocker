@@ -224,143 +224,170 @@ body{font-family:'Inter',system-ui,sans-serif;background:#fff;color:#111827;line
   .footer-brand{grid-column:1/-1}
 }
 
-/* ── CARD TOOL SECTION ── */
-.tool-section{padding:4rem 1.5rem;background:#fff}
-.tool-inner{max-width:800px;margin:0 auto}
-#root{margin-top:1rem}
+/* ── CARD TOOL SECTION — styled like the red CTA section ── */
+.tool-section{
+  background:linear-gradient(135deg,var(--red) 0%,#b72e1e 100%);
+  padding:5rem 1.5rem;
+  position:relative;
+  overflow:hidden;
+}
+.tool-section::before{
+  content:'';
+  position:absolute;
+  inset:0;
+  background-image:radial-gradient(circle,rgba(255,255,255,.08) 1px,transparent 1px);
+  background-size:36px 36px;
+  pointer-events:none;
+}
+.tool-inner{
+  max-width:1200px;
+  margin:0 auto;
+  display:grid;
+  grid-template-columns:1fr 1.2fr;
+  gap:3rem;
+  align-items:start;
+  position:relative;
+}
+.tool-left{color:#fff}
+.tool-eyebrow{
+  display:inline-flex;
+  align-items:center;
+  gap:.4rem;
+  background:rgba(255,255,255,.2);
+  border-radius:99px;
+  padding:.35rem .9rem;
+  font-size:.75rem;
+  font-weight:700;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+  margin-bottom:1.25rem;
+  backdrop-filter:blur(4px);
+  color:#fff;
+}
+.tool-title{
+  font-size:clamp(1.75rem,3.5vw,2.6rem);
+  font-weight:900;
+  letter-spacing:-.02em;
+  line-height:1.1;
+  margin-bottom:1rem;
+  color:#fff;
+}
+.tool-sub{
+  font-size:1.05rem;
+  opacity:.9;
+  line-height:1.6;
+  margin-bottom:1.5rem;
+  color:#fff;
+}
+.tool-pills{display:flex;flex-wrap:wrap;gap:.6rem}
+.tool-pill{
+  display:inline-flex;
+  align-items:center;
+  gap:.4rem;
+  background:rgba(255,255,255,.15);
+  border-radius:99px;
+  padding:.4rem .85rem;
+  font-size:.8rem;
+  font-weight:600;
+  backdrop-filter:blur(4px);
+  color:#fff;
+}
+.tool-pill::before{content:'✓';font-weight:900}
+@media(max-width:800px){
+  .tool-inner{grid-template-columns:1fr}
+  .tool-left{text-align:center}
+  .tool-pills{justify-content:center}
+}
 
-/* ── OVERRIDE APP.JS INTERNAL UI to match blockmycard.in ── */
-/* Hide app's own full-page wrapper bg and override font */
+/* ── OVERRIDE APP.JS INTERNAL UI ── */
+/* Strip the app's own page chrome — we provide it */
 #root > div[class*="min-h-screen"]{
-  background:#fff !important;
-  font-family:'Inter',system-ui,sans-serif !important;
+  background:transparent !important;
+  min-height:unset !important;
 }
-
-/* Override app's dark header — replace with red brand header */
-#root header{
-  background:var(--red) !important;
-  border-bottom:none !important;
-  border-radius:12px !important;
-  margin-bottom:1.5rem !important;
+/* Hide app header + footer — page has its own */
+#root header,
+#root footer{
+  display:none !important;
 }
-#root header > div{
-  max-width:100% !important;
-  padding:.75rem 1.25rem !important;
-}
-/* App logo box — keep red icon but update label */
-#root header .w-9{
-  background:rgba(255,255,255,.2) !important;
-  border-radius:8px !important;
-}
-/* App header text */
-#root header .font-bold.tracking-wide{
-  font-size:1rem !important;
-  font-family:'Inter',system-ui,sans-serif !important;
-}
-#root header .text-\[11px\]{
-  color:rgba(255,255,255,.75) !important;
-}
-
-/* Main content area */
+/* Main area — transparent so red gradient shows through */
 #root main{
-  background:#fff !important;
-  padding:.5rem 0 !important;
+  background:transparent !important;
+  padding:0 !important;
   max-width:100% !important;
 }
-
-/* Cards / section containers */
-#root section.bg-white,
-#root div.bg-white{
-  border-radius:16px !important;
-  border-color:var(--border) !important;
-  box-shadow:0 1px 4px rgba(0,0,0,.06) !important;
+/* The white form card */
+#root section.bg-white{
+  background:#fff !important;
+  border-radius:20px !important;
+  border:none !important;
+  box-shadow:0 20px 60px rgba(0,0,0,.22) !important;
+  max-width:100% !important;
+  margin:0 !important;
 }
-
-/* Primary buttons — restyle to red */
-#root button.w-full.bg-slate-900,
+/* Other white divs (dashboard cards, etc.) */
+#root div.bg-white:not(section){
+  background:#fff !important;
+  border-radius:14px !important;
+}
+/* Primary buttons → red */
 #root button.w-full.bg-slate-900:not([disabled]){
   background:var(--red) !important;
   border-radius:10px !important;
-  font-family:'Inter',system-ui,sans-serif !important;
-  letter-spacing:-.01em !important;
-  padding:.85rem 1rem !important;
+  padding:.9rem 1rem !important;
+  font-weight:800 !important;
+  font-size:.98rem !important;
 }
-#root button.w-full.bg-slate-900:hover{
+#root button.w-full.bg-slate-900:hover:not([disabled]){
   background:var(--red-dark) !important;
+  transform:translateY(-1px) !important;
 }
-
-/* Block button */
-#root button.bg-red-700{
+#root button.w-full.bg-slate-900:disabled{
+  background:#d1d5db !important;
+}
+/* Block card button */
+#root button.bg-red-700,#root a.bg-red-700{
   background:var(--red) !important;
-  border-radius:8px !important;
+  font-weight:700 !important;
 }
-#root button.bg-red-700:hover{
-  background:var(--red-dark) !important;
-}
-
-/* Tab/toggle buttons active state */
-#root button.border-slate-900.bg-slate-900{
+#root button.bg-red-700:hover{background:var(--red-dark) !important}
+/* Active toggle */
+#root button.bg-slate-900.border-slate-900{
   background:var(--red) !important;
   border-color:var(--red) !important;
   border-radius:8px !important;
 }
-
 /* Inputs */
 #root input,#root select,#root textarea{
-  border-color:var(--border) !important;
+  border-color:#e5e7eb !important;
   border-radius:8px !important;
-  font-family:'Inter',system-ui,sans-serif !important;
-  transition:border-color .15s,box-shadow .15s !important;
 }
 #root input:focus,#root select:focus,#root textarea:focus{
   border-color:var(--red) !important;
-  box-shadow:0 0 0 3px rgba(214,58,42,.1) !important;
+  box-shadow:0 0 0 3px rgba(214,58,42,.12) !important;
   outline:none !important;
 }
-
-/* Section headings */
-#root h2.text-xl,#root h2.text-2xl{
-  font-family:'Inter',system-ui,sans-serif !important;
-  font-weight:800 !important;
-  letter-spacing:-.02em !important;
-  color:var(--text) !important;
-}
-
-/* Test credentials panel — highlight nicely */
-#root .border-t.border-dashed{
-  border-color:#fca5a5 !important;
-  background:#fff5f5 !important;
-  border-radius:10px !important;
-  padding:.75rem !important;
-  margin-top:.75rem !important;
-}
+/* Headings */
+#root h2{font-weight:800 !important;letter-spacing:-.02em !important}
+/* Amber/warning → brand red */
 #root .text-amber-700{color:var(--red) !important}
 #root .bg-amber-50{background:#fff5f5 !important}
 #root .border-amber-200{border-color:#fca5a5 !important}
-
-/* Dashboard cards */
-#root .border-red-300{
-  border-color:var(--red) !important;
-  border-width:2px !important;
+/* Active block border */
+#root .border-red-300{border-color:var(--red) !important;border-width:2px !important}
+/* Dark instruction panel */
+#root .bg-slate-900.text-white{background:#1f2937 !important;border-radius:10px !important}
+/* Simulated messages section */
+#root section.mt-8{
+  background:rgba(255,255,255,.12) !important;
+  border-radius:12px !important;
+  padding:1rem !important;
 }
-#root .bg-slate-900.text-white.px-4{
-  background:var(--text) !important;
-  border-radius:8px !important;
-}
-#root .text-red-400{color:#fca5a5 !important}
-
-/* App footer disclaimer */
-#root footer.max-w-3xl{
-  background:var(--grey) !important;
-  border-top:1px solid var(--border) !important;
-  border-radius:8px !important;
-  margin-top:1.5rem !important;
-  color:var(--muted) !important;
-}
-
-/* Fix font family globally inside root */
+#root section.mt-8 h3{color:rgba(255,255,255,.8) !important}
+#root section.mt-8 .bg-white{background:#fff !important}
+/* Font everywhere */
 #root *{font-family:'Inter',system-ui,sans-serif !important}
-#root .font-mono,#root pre,#root code,#root span.font-mono{
+#root .font-mono,#root pre,#root [class*="font-mono"]{
   font-family:'IBM Plex Mono','Courier New',monospace !important;
 }
 
@@ -823,9 +850,17 @@ a:hover .arrow{transform:translateX(3px)}
 <!-- CARD TOOL -->
 <section class="tool-section" id="card-tool">
   <div class="tool-inner">
-    <div class="section-eyebrow" style="justify-content:center;margin-bottom:.5rem">Card Blocker Tool</div>
-    <h2 class="section-title section-center" style="margin-bottom:.5rem">Block your card right now</h2>
-    <p style="text-align:center;color:var(--muted);margin-bottom:2rem;font-size:.9rem">Pre-filled SMS, email &amp; helpline numbers for major Indian banks.</p>
+    <div class="tool-left">
+      <div class="tool-eyebrow">🚨 Emergency card blocking</div>
+      <h2 class="tool-title">Your wallet is gone.<br>Block your card<br>right now.</h2>
+      <p class="tool-sub">No account needed. Select your bank, get the pre-filled SMS &amp; email, and call the helpline — all in one place.</p>
+      <div class="tool-pills">
+        <span class="tool-pill">Works on any phone</span>
+        <span class="tool-pill">10 major Indian banks</span>
+        <span class="tool-pill">SMS, email &amp; helpline</span>
+        <span class="tool-pill">Free forever</span>
+      </div>
+    </div>
     <div id="root"></div>
   </div>
 </section>
