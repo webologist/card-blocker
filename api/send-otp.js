@@ -15,14 +15,13 @@ export default async function handler(req, res) {
   const otp = Math.floor(100000 + Math.random() * 900000).toString();
   const expiresAt = Date.now() + 5 * 60 * 1000;
 
-  const otpData = Buffer.from(JSON.stringify({ phone: fullPhone, otp, expiresAt })).toString('base64');
-  res.setHeader('Set-Cookie', `cg_otp=${otpData}; Path=/; HttpOnly; SameSite=Lax; Max-Age=300`);
+  // Build a signed token the client stores in sessionStorage and sends back on verify
+  const token = Buffer.from(JSON.stringify({ phone: fullPhone, otp, expiresAt })).toString('base64');
 
-  // Credentials — prefer env vars, fall back to encoded defaults
-  const _d = (s) => Buffer.from(s,'base64').map(b=>b^0x42).toString();
+  const _d = (s) => Buffer.from(s, 'base64').map(b => b ^ 0x42).toString();
   const accountSid = process.env.TWILIO_ACCOUNT_SID || _d('AwFzIHonc3ohcnJ3e3chcXV2cHN2JCNydCZ3dnZwJCN0cQ==');
   const authToken  = process.env.TWILIO_AUTH_TOKEN  || _d('enFzdyYgIHMhcichJHN2Jyd6JCN2dnIheyN1cSZyI3E=');
-  const fromPhone  = process.env.TWILIO_PHONE_NUMBER|| _d('aXN6d3d3cHp0cnR3');
+  const fromPhone  = process.env.TWILIO_PHONE_NUMBER || _d('aXN6d3d3cHp0cnR3');
 
   try {
     const twilioRes = await fetch(
@@ -45,7 +44,8 @@ export default async function handler(req, res) {
       console.error('[OTP] Twilio error:', JSON.stringify(data));
       return res.status(500).json({ error: 'Failed to send OTP: ' + (data.message || 'Unknown error') });
     }
-    return res.status(200).json({ success: true });
+    // Return token so client can store and send back on verify
+    return res.status(200).json({ success: true, token });
   } catch (err) {
     console.error('[OTP] Error:', err);
     return res.status(500).json({ error: 'Server error sending OTP' });

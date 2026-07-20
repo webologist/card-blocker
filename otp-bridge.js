@@ -1,10 +1,9 @@
-// otp-bridge.js — real OTP via /api/send-otp + /api/verify-otp
+// otp-bridge.js — real OTP via Twilio, token stored in sessionStorage
 // app.js patched: Tb = window.__bmc_otp || "INVALID_OTP_PLACEHOLDER"
 (function () {
   let lastPhone = '';
-  let _allowVerify = false; // lets the real click pass through after API confirms
+  let _allowVerify = false;
 
-  // ── intercept clicks ────────────────────────────────────────────
   document.addEventListener('click', async function (e) {
     const btn = e.target.closest('button');
     if (!btn) return;
@@ -17,49 +16,52 @@
       if (!/^\d{10}$/.test(digits)) return;
 
       lastPhone = '+91' + digits;
-      window.__bmc_otp = null; // clear previous
+      sessionStorage.removeItem('bmc_otp_token');
 
       try {
         const res = await fetch('/api/send-otp', {
           method: 'POST',
-          credentials: 'same-origin',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ phone: lastPhone }),
         });
         const data = await res.json();
-        console.log('[OTP] Send:', data);
+        if (data.token) {
+          sessionStorage.setItem('bmc_otp_token', data.token);
+          console.log('[OTP] Token stored, SMS sent');
+        } else {
+          console.error('[OTP] No token returned:', data);
+        }
       } catch (err) {
-        console.warn('[OTP] Send error:', err);
+        console.error('[OTP] Send error:', err);
       }
-      // Don't stop propagation — let app run xi() to show OTP screen
     }
 
     // ── VERIFY OTP ──────────────────────────────────────────────────
     if (text === 'Verify OTP') {
-      // If we already approved, let it through to React's gv()
-      if (_allowVerify) {
-        _allowVerify = false;
-        return;
-      }
+      if (_allowVerify) { _allowVerify = false; return; }
 
       e.stopImmediatePropagation();
       e.preventDefault();
 
-      // Find OTP input
       const otpInput = document.querySelector('input[maxlength="6"][type="tel"]')
                     || Array.from(document.querySelectorAll('input'))
-                         .find(i => /^\d{4,6}$/.test((i.value||'').trim()));
-
+                         .find(i => /^\d{4,6}$/.test((i.value || '').trim()));
       const entered = (otpInput?.value || '').trim();
+
       if (!/^\d{4,6}$/.test(entered)) {
         alert('Please enter the OTP sent to your phone.');
         return;
       }
 
-      // Recover phone
       if (!lastPhone) {
         const tel = document.querySelector('input[type="tel"]');
         if (tel && /^\d{10}$/.test(tel.value)) lastPhone = '+91' + tel.value;
+      }
+
+      const token = sessionStorage.getItem('bmc_otp_token');
+      if (!token) {
+        alert('Session expired. Please click Send OTP again.');
+        return;
       }
 
       console.log('[OTP] Verifying', entered, 'for', lastPhone);
@@ -67,23 +69,22 @@
       try {
         const res = await fetch('/api/verify-otp', {
           method: 'POST',
-          credentials: 'same-origin',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ phone: lastPhone, otp: entered }),
+          body: JSON.stringify({ phone: lastPhone, otp: entered, token }),
         });
         const data = await res.json();
         console.log('[OTP] Verify result:', data);
 
         if (data.success) {
-          // Set Tb to match what was typed — React state 'o' already has 'entered'
+          sessionStorage.removeItem('bmc_otp_token');
           window.__bmc_otp = entered;
           _allowVerify = true;
-          btn.click(); // re-fire — this time _allowVerify lets gv() run
+          btn.click();
         } else {
           alert(data.error || 'Incorrect OTP. Please try again.');
         }
       } catch (err) {
-        console.warn('[OTP] Verify error:', err);
+        console.error('[OTP] Verify error:', err);
         alert('Verification failed. Please try again.');
       }
     }
