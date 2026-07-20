@@ -1052,12 +1052,42 @@ function styleApp() {
       boxShadow: '0 24px 64px rgba(0,0,0,.25)', maxWidth: '100%', margin: '0', padding: '2rem',
     });
 
-    // 3a. Red eyebrow
-    const eyebrow = sec.querySelector('[class*="text-xs"][class*="uppercase"], [class*="text-xs"][class*="tracking"]');
-    if (eyebrow) Object.assign(eyebrow.style, {
-      color: RED, fontSize: '.72rem', fontWeight: '700', letterSpacing: '.08em',
-      textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '.35rem', marginBottom: '.4rem',
-    });
+    // 3a. Red eyebrow — inject form-header-badge before h2 if not present
+    const h2 = sec.querySelector('h2');
+    if (h2) {
+      // Find or create the badge
+      let badge = sec.querySelector('.__fhb');
+      if (!badge) {
+        // Look for existing eyebrow element the app renders
+        const existing = sec.querySelector('[class*="text-xs"][class*="uppercase"], [class*="text-xs"][class*="tracking"]');
+        if (existing && existing !== h2) {
+          badge = existing;
+          badge.classList.add('__fhb');
+        } else {
+          // Create and insert before h2
+          badge = document.createElement('div');
+          badge.className = '__fhb';
+          h2.parentNode.insertBefore(badge, h2);
+        }
+        // Set text based on which step is showing
+        const stepText = h2.textContent.trim();
+        if (stepText.includes('Log in') || stepText.includes('Register')) badge.textContent = '📱 Log in · 60 seconds';
+        else if (stepText.includes('OTP') || stepText.includes('Enter')) badge.textContent = '🔐 Verify your number';
+        else if (stepText.includes('Add your cards')) badge.textContent = '💳 Step 2 of 3';
+        else if (stepText.includes('card vault') || stepText.includes('Create')) badge.textContent = '📱 Register free · 60 seconds';
+        else if (stepText.includes('Emergency') || stepText.includes('contact')) badge.textContent = '👨‍👩‍👧 Step 3 of 3';
+        else if (stepText.includes('email') || stepText.includes('Email')) badge.textContent = '📧 Almost done';
+        else if (stepText.includes('Save') || stepText.includes('cards for')) badge.textContent = '🔒 Secure your cards';
+        else if (stepText.includes('Hello') || stepText.includes('dashboard')) badge.textContent = '✅ Logged in';
+        else badge.textContent = '📱 Log in · 60 seconds';
+      }
+      Object.assign(badge.style, {
+        display: 'flex', alignItems: 'center', gap: '.4rem',
+        color: RED, fontSize: '.72rem', fontWeight: '700',
+        letterSpacing: '.08em', textTransform: 'uppercase',
+        marginBottom: '.4rem',
+      });
+    }
 
     // 3b. Card h2 title
     sec.querySelectorAll('h2').forEach(h => Object.assign(h.style, {
@@ -1124,13 +1154,21 @@ function styleApp() {
         btn.onmouseenter = () => { if (!btn.disabled) { btn.style.background=RED_DARK; btn.style.transform='translateY(-1px)'; }};
         btn.onmouseleave = () => { btn.style.background=btn.disabled?'#d1d5db':RED; btn.style.transform=''; };
       }
-      // Active Own/Alternate toggle
+      // Active Own/Alternate toggle — pill style
       if (cls.includes('bg-slate-900') && !cls.includes('w-full')) {
-        Object.assign(btn.style, { background: RED, borderColor: RED, borderRadius: '8px', color: '#fff' });
+        Object.assign(btn.style, {
+          background: RED, borderColor: RED, color: '#fff',
+          borderRadius: '99px', padding: '.45rem 1.1rem',
+          fontSize: '.85rem', fontWeight: '700', border: 'none',
+        });
       }
-      // Inactive toggle
+      // Inactive toggle — pill style
       if (cls.includes('border-slate-300') && cls.includes('flex-1') && !cls.includes('bg-slate-900')) {
-        Object.assign(btn.style, { borderRadius: '8px', border: '1.5px solid #e5e7eb', color: '#374151', background: '#fff' });
+        Object.assign(btn.style, {
+          borderRadius: '99px', border: '1.5px solid #e5e7eb',
+          color: '#6b7280', background: '#f9fafb',
+          padding: '.45rem 1.1rem', fontSize: '.85rem', fontWeight: '600',
+        });
       }
       // Skip / Go back links
       if (cls.includes('underline') || (cls.includes('text-slate') && cls.includes('font-semibold'))) {
