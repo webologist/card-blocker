@@ -786,7 +786,8 @@ function styleApp() {
 
   root.querySelectorAll('section').forEach(sec=>{
     if(!(sec.className||'').includes('bg-white')) return;
-    Object.assign(sec.style,{background:cardBg,borderRadius:'20px',border:'none',boxShadow:'0 24px 64px rgba(0,0,0,.25)',maxWidth:'100%',margin:'0',padding:'2rem'});
+    const isDashboardView=!!(sec.querySelector('h2.text-2xl'));
+    Object.assign(sec.style,{background:cardBg,borderRadius:'20px',border:'none',boxShadow:'0 24px 64px rgba(0,0,0,.25)',maxWidth:'100%',margin:'0',padding:isDashboardView?'1.5rem':'2rem',maxHeight:isDashboardView?'82vh':'none',overflowY:isDashboardView?'auto':'visible'});
 
     const h2=sec.querySelector('h2');
     if(h2){
@@ -808,7 +809,11 @@ function styleApp() {
       if(h2.textContent.trim()==='Log in / Register') h2.textContent='Authenticate / Block';
     }
 
-    sec.querySelectorAll('h2').forEach(h=>Object.assign(h.style,{fontSize:'1.5rem',fontWeight:'800',color:fgColor,letterSpacing:'-.025em',lineHeight:'1.2',marginBottom:'1.25rem'}));
+    sec.querySelectorAll('h2').forEach(h=>{
+      // Don't resize the dashboard Hello heading — it's already correctly sized
+      if(h.className&&h.className.includes('text-2xl')) { h.style.color=fgColor; return; }
+      Object.assign(h.style,{fontSize:'1.5rem',fontWeight:'800',color:fgColor,letterSpacing:'-.025em',lineHeight:'1.2',marginBottom:'1.25rem'});
+    });
     sec.querySelectorAll('label').forEach(lbl=>{
       lbl.style.display='block';lbl.style.marginBottom='.85rem';
       const span=lbl.querySelector('span.block,span[class*="text-xs"],span[class*="font-semibold"]');
@@ -888,6 +893,8 @@ function styleApp() {
     });
     sec.querySelectorAll('p').forEach(p=>{
       const cls=p.className||'';
+      // Skip paragraphs inside the dark instruction panel
+      if(p.closest('[class*="bg-slate-9"]')||p.closest('[style*="#1f2937"]')||p.closest('[style*="#020617"]')) return;
       if(cls.includes('text-xs')||cls.includes('text-slate-4')||cls.includes('text-slate-5')) Object.assign(p.style,{fontSize:'.75rem',color:fg2Color,textAlign:'center',lineHeight:'1.5'});
     });
     sec.querySelectorAll('[class*="bg-amber-50"],[class*="border-dashed"]').forEach(el=>Object.assign(el.style,{background:isDark?'rgba(214,58,42,.1)':'#fff5f5',borderColor:'#fca5a5',borderRadius:'10px'}));
