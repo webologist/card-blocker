@@ -1218,14 +1218,20 @@ function styleApp() {
 }
 
 
-/* Run immediately and re-run on every React re-render */
-const observer = new MutationObserver(() => styleApp());
+/* Disconnect before styling, reconnect after — prevents infinite loop from our own DOM mutations */
+let _styling = false;
+const observer = new MutationObserver(() => {
+  if (_styling) return;
+  _styling = true;
+  observer.disconnect();
+  styleApp();
+  observer.observe(document.getElementById('root'), { childList: true, subtree: true });
+  _styling = false;
+});
 observer.observe(document.getElementById('root'), { childList: true, subtree: true });
 
-/* Also run after a short delay to catch initial render */
-setTimeout(styleApp, 100);
-setTimeout(styleApp, 500);
-setTimeout(styleApp, 1500);
+setTimeout(styleApp, 150);
+setTimeout(styleApp, 600);
 </script>
 </body>
 </html>
