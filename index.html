@@ -229,6 +229,141 @@ body{font-family:'Inter',system-ui,sans-serif;background:#fff;color:#111827;line
 .tool-inner{max-width:800px;margin:0 auto}
 #root{margin-top:1rem}
 
+/* ── OVERRIDE APP.JS INTERNAL UI to match blockmycard.in ── */
+/* Hide app's own full-page wrapper bg and override font */
+#root > div[class*="min-h-screen"]{
+  background:#fff !important;
+  font-family:'Inter',system-ui,sans-serif !important;
+}
+
+/* Override app's dark header — replace with red brand header */
+#root header{
+  background:var(--red) !important;
+  border-bottom:none !important;
+  border-radius:12px !important;
+  margin-bottom:1.5rem !important;
+}
+#root header > div{
+  max-width:100% !important;
+  padding:.75rem 1.25rem !important;
+}
+/* App logo box — keep red icon but update label */
+#root header .w-9{
+  background:rgba(255,255,255,.2) !important;
+  border-radius:8px !important;
+}
+/* App header text */
+#root header .font-bold.tracking-wide{
+  font-size:1rem !important;
+  font-family:'Inter',system-ui,sans-serif !important;
+}
+#root header .text-\[11px\]{
+  color:rgba(255,255,255,.75) !important;
+}
+
+/* Main content area */
+#root main{
+  background:#fff !important;
+  padding:.5rem 0 !important;
+  max-width:100% !important;
+}
+
+/* Cards / section containers */
+#root section.bg-white,
+#root div.bg-white{
+  border-radius:16px !important;
+  border-color:var(--border) !important;
+  box-shadow:0 1px 4px rgba(0,0,0,.06) !important;
+}
+
+/* Primary buttons — restyle to red */
+#root button.w-full.bg-slate-900,
+#root button.w-full.bg-slate-900:not([disabled]){
+  background:var(--red) !important;
+  border-radius:10px !important;
+  font-family:'Inter',system-ui,sans-serif !important;
+  letter-spacing:-.01em !important;
+  padding:.85rem 1rem !important;
+}
+#root button.w-full.bg-slate-900:hover{
+  background:var(--red-dark) !important;
+}
+
+/* Block button */
+#root button.bg-red-700{
+  background:var(--red) !important;
+  border-radius:8px !important;
+}
+#root button.bg-red-700:hover{
+  background:var(--red-dark) !important;
+}
+
+/* Tab/toggle buttons active state */
+#root button.border-slate-900.bg-slate-900{
+  background:var(--red) !important;
+  border-color:var(--red) !important;
+  border-radius:8px !important;
+}
+
+/* Inputs */
+#root input,#root select,#root textarea{
+  border-color:var(--border) !important;
+  border-radius:8px !important;
+  font-family:'Inter',system-ui,sans-serif !important;
+  transition:border-color .15s,box-shadow .15s !important;
+}
+#root input:focus,#root select:focus,#root textarea:focus{
+  border-color:var(--red) !important;
+  box-shadow:0 0 0 3px rgba(214,58,42,.1) !important;
+  outline:none !important;
+}
+
+/* Section headings */
+#root h2.text-xl,#root h2.text-2xl{
+  font-family:'Inter',system-ui,sans-serif !important;
+  font-weight:800 !important;
+  letter-spacing:-.02em !important;
+  color:var(--text) !important;
+}
+
+/* Test credentials panel — highlight nicely */
+#root .border-t.border-dashed{
+  border-color:#fca5a5 !important;
+  background:#fff5f5 !important;
+  border-radius:10px !important;
+  padding:.75rem !important;
+  margin-top:.75rem !important;
+}
+#root .text-amber-700{color:var(--red) !important}
+#root .bg-amber-50{background:#fff5f5 !important}
+#root .border-amber-200{border-color:#fca5a5 !important}
+
+/* Dashboard cards */
+#root .border-red-300{
+  border-color:var(--red) !important;
+  border-width:2px !important;
+}
+#root .bg-slate-900.text-white.px-4{
+  background:var(--text) !important;
+  border-radius:8px !important;
+}
+#root .text-red-400{color:#fca5a5 !important}
+
+/* App footer disclaimer */
+#root footer.max-w-3xl{
+  background:var(--grey) !important;
+  border-top:1px solid var(--border) !important;
+  border-radius:8px !important;
+  margin-top:1.5rem !important;
+  color:var(--muted) !important;
+}
+
+/* Fix font family globally inside root */
+#root *{font-family:'Inter',system-ui,sans-serif !important}
+#root .font-mono,#root pre,#root code,#root span.font-mono{
+  font-family:'IBM Plex Mono','Courier New',monospace !important;
+}
+
 /* ── UTIL ── */
 .arrow{font-size:1.1rem;transition:transform .15s}
 a:hover .arrow{transform:translateX(3px)}
