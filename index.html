@@ -1000,26 +1000,166 @@ a:hover .arrow{transform:translateX(3px)}
 <script src="./otp-bridge.js"></script>
 <script src="./app.js"></script>
 <script>
+/* ── FAQ ── */
 function toggleFaq(btn) {
-  const item = btn.closest('.faq-item');
-  item.classList.toggle('open');
+  btn.closest('.faq-item').classList.toggle('open');
 }
+
+/* ── Register form ── */
 function handleRegister() {
   const name = document.getElementById('reg-name').value.trim();
   const mobile = document.getElementById('reg-mobile').value.trim();
-  const email = document.getElementById('reg-email').value.trim();
   if (!name) { alert('Please enter your full name.'); return; }
   if (!/^\d{10}$/.test(mobile)) { alert('Please enter a valid 10-digit mobile number.'); return; }
-  // Scroll to card tool and pre-fill mobile
   document.getElementById('card-tool').scrollIntoView({behavior:'smooth'});
   setTimeout(() => {
-    const inputs = document.querySelectorAll('#root input[type="tel"]');
-    if (inputs.length > 0) {
-      inputs[0].value = mobile;
-      inputs[0].dispatchEvent(new Event('input', {bubbles:true}));
-    }
+    const inp = document.querySelector('#root input[type="tel"]');
+    if (inp) { inp.value = mobile; inp.dispatchEvent(new Event('input',{bubbles:true})); }
   }, 800);
 }
+
+/* ── Style the React app to match the red CTA card design ── */
+const RED = '#d63a2a';
+const RED_DARK = '#b72e1e';
+const INTER = "'Inter',system-ui,sans-serif";
+const MONO  = "'IBM Plex Mono','Courier New',monospace";
+
+function styleApp() {
+  const root = document.getElementById('root');
+  if (!root || !root.firstChild) return;
+
+  /* 1. Outer wrapper — transparent, no min-height */
+  const wrap = root.querySelector('div[class*="min-h-screen"]');
+  if (wrap) {
+    wrap.style.cssText = 'background:transparent!important;min-height:unset!important;font-family:'+INTER;
+  }
+
+  /* 2. Hide app's own header completely */
+  const hdr = root.querySelector('header');
+  if (hdr) hdr.style.display = 'none';
+
+  /* 3. Hide app's own footer */
+  const ftr = root.querySelector('footer');
+  if (ftr) ftr.style.display = 'none';
+
+  /* 4. Main — transparent */
+  const main = root.querySelector('main');
+  if (main) {
+    main.style.cssText = 'background:transparent!important;padding:0!important;max-width:100%!important';
+  }
+
+  /* 5. The white card (section.bg-white) — float it with big shadow */
+  root.querySelectorAll('section').forEach(s => {
+    if (s.className.includes('bg-white')) {
+      s.style.cssText = [
+        'background:#fff!important',
+        'border-radius:20px!important',
+        'border:none!important',
+        'box-shadow:0 24px 64px rgba(0,0,0,.25)!important',
+        'max-width:100%!important',
+        'margin:0!important',
+        'padding:2rem!important',
+      ].join(';');
+    }
+  });
+
+  /* 6. All text — Inter */
+  root.querySelectorAll('*').forEach(el => {
+    if (!el.className.includes('font-mono') && el.tagName !== 'PRE' && el.tagName !== 'CODE') {
+      el.style.fontFamily = INTER;
+    }
+  });
+
+  /* 7. Mono elements */
+  root.querySelectorAll('[class*="font-mono"],pre,code').forEach(el => {
+    el.style.fontFamily = MONO;
+  });
+
+  /* 8. Primary full-width buttons → big red */
+  root.querySelectorAll('button').forEach(btn => {
+    const cls = btn.className || '';
+
+    /* Send OTP / Verify / Continue etc. — full-width slate-900 */
+    if (cls.includes('w-full') && cls.includes('bg-slate-900')) {
+      btn.style.cssText = [
+        'background:'+RED+'!important',
+        'color:#fff!important',
+        'border-radius:10px!important',
+        'padding:1rem!important',
+        'font-size:1rem!important',
+        'font-weight:800!important',
+        'border:none!important',
+        'width:100%!important',
+        'cursor:pointer!important',
+        'font-family:'+INTER,
+      ].join(';');
+      btn.onmouseenter = () => { if (!btn.disabled) btn.style.background = RED_DARK; };
+      btn.onmouseleave = () => { if (!btn.disabled) btn.style.background = RED; };
+    }
+
+    /* Block card red button */
+    if (cls.includes('bg-red-700')) {
+      btn.style.background = RED;
+      btn.style.fontWeight = '700';
+    }
+
+    /* Active toggle (Own / Alternate selected state) */
+    if (cls.includes('bg-slate-900') && cls.includes('border-slate-900') && !cls.includes('w-full')) {
+      btn.style.background = RED;
+      btn.style.borderColor = RED;
+      btn.style.borderRadius = '8px';
+    }
+  });
+
+  /* 9. Inputs / selects / textareas */
+  root.querySelectorAll('input,select,textarea').forEach(el => {
+    el.style.cssText = [
+      'border:1.5px solid #e5e7eb!important',
+      'border-radius:10px!important',
+      'padding:.8rem 1rem!important',
+      'font-size:.95rem!important',
+      'background:#fff!important',
+      'color:#111827!important',
+      'font-family:'+INTER,
+    ].join(';');
+    el.onfocus = () => {
+      el.style.borderColor = RED;
+      el.style.boxShadow = '0 0 0 3px rgba(214,58,42,.12)';
+      el.style.outline = 'none';
+    };
+    el.onblur = () => {
+      el.style.borderColor = '#e5e7eb';
+      el.style.boxShadow = 'none';
+    };
+  });
+
+  /* 10. Headings */
+  root.querySelectorAll('h2').forEach(h => {
+    h.style.fontWeight = '800';
+    h.style.letterSpacing = '-.02em';
+    h.style.fontFamily = INTER;
+  });
+
+  /* 11. Amber warning panel → soft red */
+  root.querySelectorAll('[class*="bg-amber-50"]').forEach(el => el.style.background = '#fff5f5');
+  root.querySelectorAll('[class*="text-amber-700"]').forEach(el => el.style.color = RED);
+  root.querySelectorAll('[class*="border-amber-200"]').forEach(el => el.style.borderColor = '#fca5a5');
+
+  /* 12. Active block border */
+  root.querySelectorAll('[class*="border-red-300"]').forEach(el => {
+    el.style.borderColor = RED;
+    el.style.borderWidth = '2px';
+  });
+}
+
+/* Run immediately and re-run on every React re-render */
+const observer = new MutationObserver(() => styleApp());
+observer.observe(document.getElementById('root'), { childList: true, subtree: true });
+
+/* Also run after a short delay to catch initial render */
+setTimeout(styleApp, 100);
+setTimeout(styleApp, 500);
+setTimeout(styleApp, 1500);
 </script>
 </body>
 </html>
