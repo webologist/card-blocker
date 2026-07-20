@@ -168,7 +168,7 @@ body{font-family:'Inter','Noto Sans Devanagari','Noto Sans Gujarati',system-ui,s
 .steps-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:1.5rem;margin-top:3rem}
 .step-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;transition:box-shadow .2s}
 .step-card:hover{box-shadow:var(--shadow-md)}
-.step-img{height:200px;display:grid;place-items:center;font-size:3.5rem;position:relative;overflow:hidden}
+.step-img{height:200px;display:block;font-size:3.5rem;position:relative;overflow:hidden}
 .step-img-1{background:linear-gradient(135deg,#fef2f2,#fee2e2)}
 .step-img-2{background:linear-gradient(135deg,#eff6ff,#dbeafe)}
 .step-img-3{background:linear-gradient(135deg,#f0fdf4,#dcfce7)}
@@ -187,7 +187,7 @@ body{font-family:'Inter','Noto Sans Devanagari','Noto Sans Gujarati',system-ui,s
 /* Sleep banner */
 .sleep-banner{margin-top:3rem;border-radius:var(--radius-xl);border:1px solid var(--border);overflow:hidden;background:var(--card);display:grid;grid-template-columns:1fr 1fr;box-shadow:var(--shadow-md)}
 @media(max-width:700px){.sleep-banner{grid-template-columns:1fr}}
-.sleep-visual{background:linear-gradient(135deg,#fef2f2,#fee2e2);display:flex;align-items:center;justify-content:center;font-size:5rem;padding:2rem;min-height:260px}
+.sleep-visual{background:linear-gradient(135deg,#fef2f2,#fee2e2);display:block;min-height:260px;overflow:hidden}
 [data-theme="dark"] .sleep-visual{background:linear-gradient(135deg,rgba(214,58,42,.12),rgba(239,68,68,.08))}
 .sleep-content{padding:2.5rem 2rem}
 .sleep-badge{display:inline-flex;align-items:center;gap:.4rem;background:#d1fae5;color:#065f46;border-radius:99px;padding:.3rem .75rem;font-size:.7rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;margin-bottom:1rem}
@@ -456,12 +456,12 @@ body{font-family:'Inter','Noto Sans Devanagari','Noto Sans Gujarati',system-ui,s
       <p class="section-sub">Three calm steps today — for the three panicked minutes you might face tomorrow.</p>
     </div>
     <div class="steps-grid">
-      <div class="step-card"><div class="step-img step-img-1">🙋‍♀️<div class="step-num">Step 01</div></div><div class="step-body"><div class="step-icon-row"><div class="step-step-icon">🔑</div><div class="step-title">Register in 60 seconds</div></div><p class="step-desc">Just your name, mobile, and email. No card numbers yet.</p></div></div>
-      <div class="step-card"><div class="step-img step-img-2">💳<div class="step-num">Step 02</div></div><div class="step-body"><div class="step-icon-row"><div class="step-step-icon">🏦</div><div class="step-title">Add your cards &amp; mobile numbers</div></div><p class="step-desc">Type or scan the details you need to contact your bank quickly. You decide what to save.</p></div></div>
-      <div class="step-card"><div class="step-img step-img-3">👨‍👩‍👦<div class="step-num">Step 03</div></div><div class="step-body"><div class="step-icon-row"><div class="step-step-icon">👥</div><div class="step-title">Add your alternate or family member's details</div></div><p class="step-desc">Save contacts you can reach in case your phone is lost or unreachable.</p></div></div>
+      <div class="step-card"><div class="step-img step-img-1"><img src="https://blockmycard.in/assets/step-register-Hm_8eUJ2.jpg" alt="Woman signing up" style="width:100%;height:100%;object-fit:cover"/><div class="step-num">Step 01</div></div><div class="step-body"><div class="step-icon-row"><div class="step-step-icon">🔑</div><div class="step-title">Register in 60 seconds</div></div><p class="step-desc">Just your name, mobile, and email. No card numbers yet.</p></div></div>
+      <div class="step-card"><div class="step-img step-img-2"><img src="https://blockmycard.in/assets/step-cards-DHK2f_TQ.jpg" alt="Cards in vault" style="width:100%;height:100%;object-fit:cover"/><div class="step-num">Step 02</div></div><div class="step-body"><div class="step-icon-row"><div class="step-step-icon">🏦</div><div class="step-title">Add your cards &amp; mobile numbers</div></div><p class="step-desc">Type or scan the details you need to contact your bank quickly. You decide what to save.</p></div></div>
+      <div class="step-card"><div class="step-img step-img-3"><img src="https://blockmycard.in/assets/step-family-DHM87eIG.jpg" alt="Family contact" style="width:100%;height:100%;object-fit:cover"/><div class="step-num">Step 03</div></div><div class="step-body"><div class="step-icon-row"><div class="step-step-icon">👥</div><div class="step-title">Add your alternate or family member's details</div></div><p class="step-desc">Save contacts you can reach in case your phone is lost or unreachable.</p></div></div>
     </div>
     <div class="sleep-banner">
-      <div class="sleep-visual">🏡</div>
+      <div class="sleep-visual" style="padding:0"><img src="https://blockmycard.in/assets/happy-protected-IY_DegO-.jpg" alt="Happy protected family" style="width:100%;height:100%;object-fit:cover;min-height:260px;border-radius:0"/></div>
       <div class="sleep-content">
         <div class="sleep-badge">✨ Life after BlockMyCard</div>
         <h3 class="sleep-title">Sleep easy. Travel easy. Live easy.</h3>
@@ -487,9 +487,9 @@ body{font-family:'Inter','Noto Sans Devanagari','Noto Sans Gujarati',system-ui,s
       <p class="section-sub" style="color:#94a3b8;margin:0 auto">No panic. No endless calls. Just login, pick your bank, and block.</p>
     </div>
     <div class="steps-grid" style="margin-top:3rem">
-      <div class="block-step-card step-card"><div class="step-img block-step-img-1" style="height:200px">📲<div class="step-num" style="background:rgba(15,23,42,.85);color:#f87171">Step 01</div></div><div class="step-body"><div class="step-icon-row"><div class="step-step-icon">📱</div><div class="step-title" style="color:#f1f5f9">Log in with your mobile number</div></div><p class="step-desc" style="color:#94a3b8">Sign in securely. If your phone is lost, use the alternate number you saved during registration.</p></div></div>
-      <div class="block-step-card step-card"><div class="step-img block-step-img-2" style="height:200px">🏦<div class="step-num" style="background:rgba(15,23,42,.85);color:#f87171">Step 02</div></div><div class="step-body"><div class="step-icon-row"><div class="step-step-icon">🏦</div><div class="step-title" style="color:#f1f5f9">Select your bank and follow instructions</div></div><p class="step-desc" style="color:#94a3b8">Pick your bank from the list. BlockMyCard shows the exact helpline or link to block your card fast.</p></div></div>
-      <div class="block-step-card step-card"><div class="step-img block-step-img-3" style="height:200px">💳<div class="step-num" style="background:rgba(15,23,42,.85);color:#f87171">Step 03</div><div class="step-paid">Paid service</div></div><div class="step-body"><div class="step-icon-row"><div class="step-step-icon">💳</div><div class="step-title" style="color:#f1f5f9">Select saved cards &amp; use templates</div></div><p class="step-desc" style="color:#94a3b8">If you saved card details, pick the cards to block and send pre-made blocking templates.</p></div></div>
+      <div class="block-step-card step-card"><div class="step-img block-step-img-1" style="height:200px"><img src="https://blockmycard.in/assets/block-login-Bndi32j3.jpg" alt="Login from any phone" style="width:100%;height:100%;object-fit:cover"/><div class="step-num" style="background:rgba(15,23,42,.85);color:#f87171">Step 01</div></div><div class="step-body"><div class="step-icon-row"><div class="step-step-icon">📱</div><div class="step-title" style="color:#f1f5f9">Log in with your mobile number</div></div><p class="step-desc" style="color:#94a3b8">Sign in securely. If your phone is lost, use the alternate number you saved during registration.</p></div></div>
+      <div class="block-step-card step-card"><div class="step-img block-step-img-2" style="height:200px"><img src="https://blockmycard.in/assets/block-bank-BVC2HkJO.jpg" alt="Select your bank" style="width:100%;height:100%;object-fit:cover"/><div class="step-num" style="background:rgba(15,23,42,.85);color:#f87171">Step 02</div></div><div class="step-body"><div class="step-icon-row"><div class="step-step-icon">🏦</div><div class="step-title" style="color:#f1f5f9">Select your bank and follow instructions</div></div><p class="step-desc" style="color:#94a3b8">Pick your bank from the list. BlockMyCard shows the exact helpline or link to block your card fast.</p></div></div>
+      <div class="block-step-card step-card"><div class="step-img block-step-img-3" style="height:200px"><img src="https://blockmycard.in/assets/block-cards-C-rkNEDW.jpg" alt="Saved cards and templates" style="width:100%;height:100%;object-fit:cover"/><div class="step-num" style="background:rgba(15,23,42,.85);color:#f87171">Step 03</div><div class="step-paid">Paid service</div></div><div class="step-body"><div class="step-icon-row"><div class="step-step-icon">💳</div><div class="step-title" style="color:#f1f5f9">Select saved cards &amp; use templates</div></div><p class="step-desc" style="color:#94a3b8">If you saved card details, pick the cards to block and send pre-made blocking templates.</p></div></div>
     </div>
   </div>
 </section>
