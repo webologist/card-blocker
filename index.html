@@ -833,14 +833,58 @@ function styleApp() {
     });
     sec.querySelectorAll('button').forEach(btn=>{
       const cls=btn.className||'';
+      const txt=(btn.textContent||'').trim();
+
+      // Block button (dashboard) — keep red, not full-width
+      if(cls.includes('bg-red-700')){
+        Object.assign(btn.style,{background:RED,fontWeight:'700',borderRadius:'8px',color:'#fff',border:'none',cursor:'pointer',padding:'.4rem .9rem',fontSize:'.85rem'});
+        btn.onmouseenter=()=>btn.style.background=RED_DARK;
+        btn.onmouseleave=()=>btn.style.background=RED;
+        return;
+      }
+      // "Add card" outline button (dashboard) — keep dark outline style
+      if(cls.includes('border-slate-900')&&!cls.includes('bg-slate-900')&&!cls.includes('w-full')){
+        Object.assign(btn.style,{borderRadius:'8px',border:'1.5px solid '+fgColor,color:fgColor,background:'transparent',cursor:'pointer',padding:'.45rem .9rem',fontWeight:'600',fontSize:'.875rem'});
+        btn.onmouseenter=()=>{btn.style.background=fgColor;btn.style.color=cardBg;};
+        btn.onmouseleave=()=>{btn.style.background='transparent';btn.style.color=fgColor;};
+        return;
+      }
+      // Remove / Cancel (dashboard)
+      if(txt==='Remove'||txt==='Cancel'){
+        Object.assign(btn.style,{color:RED,background:'none',border:'none',cursor:'pointer',fontSize:'.8rem',fontWeight:'600'});
+        return;
+      }
+      // Log out / Exit admin
+      if(txt==='Log out'||txt==='Exit admin'){
+        Object.assign(btn.style,{color:'rgba(255,255,255,.75)',background:'none',border:'none',cursor:'pointer',textDecoration:'underline',fontSize:'.875rem'});
+        return;
+      }
+      // Primary full-width CTA (Send OTP, Verify OTP, Continue, YES-Save)
       if(cls.includes('w-full')&&cls.includes('bg-slate-900')){
         Object.assign(btn.style,{display:'flex',width:'100%',alignItems:'center',justifyContent:'center',gap:'.5rem',background:btn.disabled?'#d1d5db':RED,color:'#fff',border:'none',borderRadius:'10px',padding:'1rem',fontSize:'1rem',fontWeight:'800',cursor:btn.disabled?'not-allowed':'pointer',marginTop:'.5rem'});
         btn.onmouseenter=()=>{if(!btn.disabled){btn.style.background=RED_DARK;btn.style.transform='translateY(-1px)';}};
         btn.onmouseleave=()=>{btn.style.background=btn.disabled?'#d1d5db':RED;btn.style.transform='';};
+        return;
       }
-      if(cls.includes('bg-slate-900')&&!cls.includes('w-full')) Object.assign(btn.style,{background:RED,borderColor:RED,color:'#fff',borderRadius:'99px',padding:'.45rem 1.1rem',fontSize:'.85rem',fontWeight:'700',border:'none'});
-      if(cls.includes('border-slate-300')&&cls.includes('flex-1')&&!cls.includes('bg-slate-900')) Object.assign(btn.style,{borderRadius:'99px',border:'1.5px solid '+borderColor,color:fg2Color,background:isDark?'#0f172a':'#f9fafb',padding:'.45rem 1.1rem',fontSize:'.85rem',fontWeight:'600'});
-      if(cls.includes('underline')||(cls.includes('text-slate')&&cls.includes('font-semibold'))) Object.assign(btn.style,{color:RED,background:'none',border:'none',cursor:'pointer'});
+      // NO — Continue free (outline full-width)
+      if(cls.includes('w-full')&&(cls.includes('border-slate-300')||cls.includes('border border-slate'))){
+        Object.assign(btn.style,{width:'100%',borderRadius:'10px',border:'1.5px solid '+borderColor,color:fgColor,background:'transparent',padding:'.85rem 1rem',fontWeight:'600',cursor:'pointer'});
+        return;
+      }
+      // Active Own/Alternate + Debit/Credit pill toggle
+      if(cls.includes('bg-slate-900')&&(cls.includes('flex-1')||!cls.includes('w-full'))){
+        Object.assign(btn.style,{background:RED,borderColor:RED,color:'#fff',borderRadius:'99px',padding:'.45rem 1.1rem',fontSize:'.85rem',fontWeight:'700',border:'none'});
+        return;
+      }
+      // Inactive pill toggle
+      if(cls.includes('border-slate-300')&&cls.includes('flex-1')&&!cls.includes('bg-slate-900')){
+        Object.assign(btn.style,{borderRadius:'99px',border:'1.5px solid '+borderColor,color:fg2Color,background:isDark?'#0f172a':'#f9fafb',padding:'.45rem 1.1rem',fontSize:'.85rem',fontWeight:'600'});
+        return;
+      }
+      // Skip / Go back underline links
+      if(cls.includes('underline')||(cls.includes('text-slate')&&cls.includes('font-semibold'))){
+        Object.assign(btn.style,{color:RED,background:'none',border:'none',cursor:'pointer'});
+      }
     });
     sec.querySelectorAll('p').forEach(p=>{
       const cls=p.className||'';
@@ -851,15 +895,38 @@ function styleApp() {
     sec.querySelectorAll('[role="alert"],[class*="text-destructive"],[class*="text-red-8"]').forEach(el=>el.style.color=RED);
   });
 
+  // Dashboard: white card items
   root.querySelectorAll('div.bg-white').forEach(d=>Object.assign(d.style,{background:cardBg,borderRadius:'12px'}));
+
+  // Block button (dashboard, outside section loop)
   root.querySelectorAll('button[class*="bg-red-7"],a[class*="bg-red-7"]').forEach(el=>{
-    Object.assign(el.style,{background:RED,fontWeight:'700',borderRadius:'8px'});
+    Object.assign(el.style,{background:RED,fontWeight:'700',borderRadius:'8px',color:'#fff',border:'none',cursor:'pointer',padding:'.4rem .9rem',fontSize:'.85rem'});
     el.onmouseenter=()=>el.style.background=RED_DARK;
     el.onmouseleave=()=>el.style.background=RED;
   });
-  root.querySelectorAll('[class*="border-red-3"]').forEach(el=>{el.style.borderColor=RED;el.style.borderWidth='2px';});
-  root.querySelectorAll('[class*="bg-slate-9"][class*="text-white"]').forEach(el=>Object.assign(el.style,{background:isDark?'#020617':'#1f2937',borderRadius:'10px'}));
-  root.querySelectorAll('[class*="bg-emerald-7"]').forEach(el=>Object.assign(el.style,{background:'#059669',borderRadius:'8px'}));
+
+  // Active blocked card highlight
+  root.querySelectorAll('[class*="border-red-3"]').forEach(el=>{el.style.borderColor=RED;el.style.borderWidth='2px';el.style.borderRadius='12px';});
+
+  // Dark "Do this now" instruction panel
+  root.querySelectorAll('[class*="bg-slate-9"]').forEach(el=>{
+    if((el.className||'').includes('text-white'))
+      Object.assign(el.style,{background:isDark?'#020617':'#1f2937',borderRadius:'10px',padding:'1rem',color:'#f1f5f9'});
+  });
+
+  // "Add card" outline button in dashboard (outside section loop)
+  root.querySelectorAll('button[class*="border-slate-900"]:not([class*="bg-slate-900"])').forEach(btn=>{
+    Object.assign(btn.style,{borderRadius:'8px',border:'1.5px solid '+fgColor,color:fgColor,background:'transparent',cursor:'pointer',padding:'.45rem .9rem',fontWeight:'600',fontSize:'.875rem'});
+    btn.onmouseenter=()=>{btn.style.background=fgColor;btn.style.color=cardBg;};
+    btn.onmouseleave=()=>{btn.style.background='transparent';btn.style.color=fgColor;};
+  });
+
+  // Amber warning (unverified bank)
+  root.querySelectorAll('[class*="bg-amber-5"]').forEach(el=>Object.assign(el.style,{background:'#fffbeb',borderColor:'#fde68a',borderRadius:'6px'}));
+  root.querySelectorAll('[class*="text-amber-8"]').forEach(el=>el.style.color='#92400e');
+
+  // Success
+  root.querySelectorAll('[class*="bg-emerald-7"]').forEach(el=>Object.assign(el.style,{background:'#059669',borderRadius:'8px',color:'#fff'}));
 }
 
 let _styling=false;
