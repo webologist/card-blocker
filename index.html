@@ -3,14 +3,756 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>CardGuard — Emergency Card Blocking</title>
-<meta name="description" content="Block a lost or stolen debit/credit card in seconds. Pre-filled SMS, email, and helpline numbers for major Indian banks." />
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='15' fill='%23b91c1c'/><text x='50' y='68' font-size='55' text-anchor='middle' fill='white'>⛨</text></svg>" />
-<script src="https://cdn.tailwindcss.com"></script>
+<meta name="theme-color" content="#d63a2a" />
+<title>BlockMyCard.in — A Card Blocking Helper for Indian Users</title>
+<meta name="description" content="A free card-blocking helper for Indian users. Store card numbers and bank helplines so you can act fast if your wallet or phone is lost." />
+<meta property="og:title" content="BlockMyCard.in — A Card Blocking Helper for Indian Users" />
+<meta property="og:description" content="A free card-blocking helper for Indian users. Block every card in one tap when your wallet is lost." />
+<meta property="og:type" content="website" />
+<meta name="twitter:card" content="summary_large_image" />
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='15' fill='%23d63a2a'/><text x='50' y='68' font-size='55' text-anchor='middle' fill='white'>⛨</text></svg>" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth;font-size:16px}
+body{font-family:'Inter',system-ui,sans-serif;background:#fff;color:#111827;line-height:1.6;-webkit-font-smoothing:antialiased}
+:root{
+  --red:#d63a2a;
+  --red-dark:#b72e1e;
+  --red-light:#fef2f2;
+  --grey:#f8f9fa;
+  --border:#e5e7eb;
+  --text:#111827;
+  --muted:#6b7280;
+}
+
+/* ── NAV ── */
+.nav{position:sticky;top:0;z-index:100;background:#fff;border-bottom:1px solid var(--border);box-shadow:0 1px 3px rgba(0,0,0,.06)}
+.nav-inner{max-width:1200px;margin:0 auto;padding:0 1.5rem;height:64px;display:flex;align-items:center;justify-content:space-between;gap:1rem}
+.nav-logo{display:flex;align-items:center;gap:.6rem;text-decoration:none;color:var(--text);font-weight:800;font-size:1.15rem;letter-spacing:-.01em}
+.nav-logo-icon{width:36px;height:36px;background:var(--red);border-radius:10px;display:grid;place-items:center;color:#fff;font-size:1.1rem}
+.nav-logo span{color:var(--red)}
+.nav-links{display:flex;align-items:center;gap:1.75rem;list-style:none}
+.nav-links a{text-decoration:none;color:var(--muted);font-size:.9rem;font-weight:500;transition:color .15s}
+.nav-links a:hover{color:var(--text)}
+.nav-cta{background:var(--red);color:#fff;padding:.55rem 1.25rem;border-radius:8px;text-decoration:none;font-weight:700;font-size:.9rem;transition:background .15s;white-space:nowrap}
+.nav-cta:hover{background:var(--red-dark)}
+.nav-toggle{display:none;background:none;border:1px solid var(--border);border-radius:6px;padding:.4rem .6rem;cursor:pointer;font-size:1.1rem}
+@media(max-width:768px){
+  .nav-links{display:none}
+  .nav-toggle{display:block}
+}
+
+/* ── HERO ── */
+.hero{background:linear-gradient(135deg,#fff5f5 0%,#fff 60%);padding:5rem 1.5rem 4rem;overflow:hidden}
+.hero-inner{max-width:1200px;margin:0 auto;display:grid;grid-template-columns:1fr 1fr;gap:3rem;align-items:center}
+.hero-badge{display:inline-flex;align-items:center;gap:.5rem;background:var(--red-light);color:var(--red);border:1px solid #fecaca;border-radius:99px;padding:.35rem 1rem;font-size:.78rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;margin-bottom:1.5rem}
+.hero h1{font-size:clamp(2.2rem,5vw,3.6rem);font-weight:900;line-height:1.05;letter-spacing:-.03em;color:var(--text);margin-bottom:1.25rem}
+.hero h1 .accent{color:var(--red)}
+.hero p{font-size:1.1rem;color:var(--muted);max-width:520px;line-height:1.7;margin-bottom:2rem}
+.hero-btns{display:flex;flex-wrap:wrap;gap:.75rem;margin-bottom:2rem}
+.btn-primary{display:inline-flex;align-items:center;gap:.5rem;background:var(--red);color:#fff;padding:.85rem 1.75rem;border-radius:12px;font-weight:700;font-size:1rem;text-decoration:none;transition:background .15s,transform .1s;border:none;cursor:pointer}
+.btn-primary:hover{background:var(--red-dark);transform:translateY(-1px)}
+.btn-secondary{display:inline-flex;align-items:center;gap:.5rem;background:#fff;color:var(--text);border:2px solid var(--border);padding:.8rem 1.65rem;border-radius:12px;font-weight:600;font-size:1rem;text-decoration:none;transition:border-color .15s,transform .1s;cursor:pointer}
+.btn-secondary:hover{border-color:var(--text);transform:translateY(-1px)}
+.hero-pills{display:flex;flex-wrap:wrap;gap:.6rem}
+.pill{display:inline-flex;align-items:center;gap:.4rem;background:#fff;border:1px solid var(--border);border-radius:99px;padding:.4rem .9rem;font-size:.8rem;font-weight:600;color:var(--text)}
+.pill-dot{width:8px;height:8px;border-radius:50%;background:var(--red)}
+
+/* Hero card mockup */
+.hero-mockup{position:relative;display:flex;justify-content:center;align-items:center}
+.mockup-phone{background:#fff;border:8px solid #1f2937;border-radius:2.5rem;padding:1.25rem 1rem;width:280px;box-shadow:0 20px 60px rgba(0,0,0,.18);position:relative}
+.mockup-notch{width:60px;height:5px;background:#374151;border-radius:99px;margin:0 auto .75rem}
+.mockup-header{display:flex;align-items:center;gap:.5rem;margin-bottom:1rem}
+.mockup-icon{width:32px;height:32px;background:var(--red);border-radius:8px;display:grid;place-items:center;color:#fff;font-size:.9rem;flex-shrink:0}
+.mockup-title{font-size:.8rem;font-weight:700;line-height:1.1}
+.mockup-sub{font-size:.65rem;color:var(--muted)}
+.mockup-online{width:8px;height:8px;border-radius:50%;background:#22c55e;margin-left:auto;flex-shrink:0}
+.card-stack{display:flex;flex-direction:column;gap:.6rem;margin-bottom:1rem}
+.mini-card{border-radius:12px;padding:.7rem .9rem;color:#fff;position:relative;overflow:hidden}
+.mini-card-1{background:linear-gradient(135deg,#1e40af,#3b82f6)}
+.mini-card-2{background:linear-gradient(135deg,#d63a2a,#f97316)}
+.mini-card-3{background:linear-gradient(135deg,#065f46,#10b981)}
+.mini-card-label{font-size:.65rem;font-weight:600;opacity:.85}
+.mini-card-num{font-size:.72rem;font-weight:700;letter-spacing:.05em;margin-top:.25rem}
+.mini-card-badge{position:absolute;right:.7rem;top:50%;transform:translateY(-50%);font-size:.55rem;font-weight:800;background:rgba(255,255,255,.25);border-radius:4px;padding:.15rem .4rem;text-transform:uppercase;letter-spacing:.05em}
+.sos-btn{width:100%;background:var(--red);color:#fff;border:none;border-radius:12px;padding:.8rem;font-weight:800;font-size:.8rem;letter-spacing:.05em;cursor:pointer;text-transform:uppercase}
+.mockup-footer{display:flex;justify-content:space-between;margin-top:.6rem;font-size:.6rem;color:var(--muted)}
+.mockup-alert{position:absolute;top:1.5rem;left:-3rem;background:#fff;border:1px solid var(--border);border-radius:12px;padding:.6rem .8rem;box-shadow:0 4px 16px rgba(0,0,0,.1);display:flex;align-items:center;gap:.5rem;font-size:.72rem;white-space:nowrap}
+.alert-icon{width:28px;height:28px;border-radius:8px;background:#fef2f2;display:grid;place-items:center;font-size:.9rem;flex-shrink:0}
+
+@media(max-width:900px){
+  .hero-inner{grid-template-columns:1fr}
+  .hero-mockup{display:none}
+}
+
+/* ── SECTION SHARED ── */
+.section{padding:5rem 1.5rem}
+.section-alt{background:var(--grey)}
+.section-inner{max-width:1200px;margin:0 auto}
+.section-eyebrow{display:inline-flex;align-items:center;gap:.4rem;color:var(--red);font-size:.75rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin-bottom:.75rem}
+.section-eyebrow::before{content:'';width:12px;height:2px;background:var(--red);border-radius:1px}
+.section-title{font-size:clamp(1.75rem,3.5vw,2.4rem);font-weight:900;letter-spacing:-.02em;line-height:1.1;margin-bottom:.75rem}
+.section-sub{font-size:1rem;color:var(--muted);max-width:580px;line-height:1.7}
+.section-center{text-align:center}
+.section-center .section-sub{margin:0 auto}
+
+/* ── STATS ── */
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:1.25rem;margin-top:3rem}
+.stat-card{background:#fff;border:1px solid var(--border);border-radius:16px;padding:1.5rem;transition:box-shadow .2s,transform .2s;cursor:default}
+.stat-card:hover{box-shadow:0 8px 24px rgba(0,0,0,.09);transform:translateY(-2px)}
+.stat-source{display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem}
+.stat-source-label{font-size:.72rem;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);background:var(--grey);border-radius:6px;padding:.25rem .6rem}
+.stat-value{font-size:2.6rem;font-weight:900;letter-spacing:-.03em;color:var(--text);line-height:1}
+.stat-label{font-size:.9rem;font-weight:500;color:var(--text);margin:.4rem 0}
+.stat-change{display:flex;align-items:center;justify-content:space-between;font-size:.82rem;font-weight:700;color:var(--red);margin-top:.6rem}
+.stat-read{font-size:.75rem;color:var(--muted);font-weight:500}
+.stats-callout{margin-top:2.5rem;background:var(--red-light);border:2px dashed #fca5a5;border-radius:16px;padding:1.5rem 2rem;text-align:center;font-size:1rem;font-weight:500;color:var(--text);max-width:700px;margin-left:auto;margin-right:auto}
+.stats-callout strong{color:var(--red)}
+
+/* ── FEATURES ── */
+.features-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:1.25rem;margin-top:3rem}
+.feature-card{background:#fff;border:1px solid var(--border);border-radius:16px;padding:1.75rem;transition:box-shadow .2s,transform .2s}
+.feature-card:hover{box-shadow:0 8px 24px rgba(0,0,0,.09);transform:translateY(-3px)}
+.feature-icon{width:52px;height:52px;border-radius:14px;background:var(--red);display:grid;place-items:center;font-size:1.4rem;margin-bottom:1.25rem;color:#fff}
+.feature-title{font-size:1.1rem;font-weight:700;margin-bottom:.4rem}
+.feature-desc{font-size:.88rem;color:var(--muted);line-height:1.65}
+
+/* ── STEPS ── */
+.steps-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:1.5rem;margin-top:3rem}
+.step-card{background:#fff;border:1px solid var(--border);border-radius:16px;overflow:hidden;transition:box-shadow .2s}
+.step-card:hover{box-shadow:0 8px 24px rgba(0,0,0,.08)}
+.step-img{height:200px;background:linear-gradient(135deg,#fef2f2,#fee2e2);display:grid;place-items:center;font-size:3rem;position:relative}
+.step-num{position:absolute;top:.75rem;left:.75rem;background:rgba(255,255,255,.9);color:var(--red);font-size:.72rem;font-weight:800;letter-spacing:.05em;border-radius:6px;padding:.2rem .55rem}
+.step-paid{position:absolute;top:.75rem;right:.75rem;background:#fbbf24;color:#78350f;font-size:.65rem;font-weight:800;letter-spacing:.04em;border-radius:6px;padding:.2rem .55rem;text-transform:uppercase}
+.step-body{padding:1.25rem}
+.step-icon-row{display:flex;align-items:center;gap:.75rem;margin-bottom:.5rem}
+.step-step-icon{width:38px;height:38px;border-radius:10px;background:var(--red);display:grid;place-items:center;color:#fff;font-size:1rem;flex-shrink:0}
+.step-title{font-size:1rem;font-weight:700;line-height:1.2}
+.step-desc{font-size:.85rem;color:var(--muted);margin-top:.35rem;line-height:1.6}
+
+/* Sleep easy banner */
+.sleep-banner{margin-top:3rem;border-radius:20px;border:1px solid var(--border);overflow:hidden;background:#fff;display:grid;grid-template-columns:1fr 1fr;box-shadow:0 4px 16px rgba(0,0,0,.06)}
+.sleep-visual{background:linear-gradient(135deg,#fef2f2,#fee2e2);display:flex;align-items:center;justify-content:center;font-size:5rem;padding:2rem;min-height:260px}
+.sleep-content{padding:2.5rem 2rem}
+.sleep-badge{display:inline-flex;align-items:center;gap:.4rem;background:#d1fae5;color:#065f46;border-radius:99px;padding:.3rem .8rem;font-size:.72rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;margin-bottom:1rem}
+.sleep-title{font-size:1.75rem;font-weight:900;letter-spacing:-.02em;line-height:1.15;margin-bottom:.75rem}
+.sleep-points{display:grid;grid-template-columns:1fr 1fr;gap:.4rem .75rem;margin-bottom:1.5rem}
+.sleep-point{font-size:.85rem;font-weight:500;display:flex;align-items:center;gap:.4rem}
+.sleep-point::before{content:'✓';color:var(--red);font-weight:800}
+@media(max-width:700px){
+  .sleep-banner{grid-template-columns:1fr}
+  .sleep-visual{min-height:120px;font-size:3rem;padding:1.5rem}
+  .sleep-points{grid-template-columns:1fr}
+}
+
+/* ── TRUST ── */
+.trust-grid{display:grid;grid-template-columns:1fr 1.1fr;gap:3rem;align-items:start;margin-top:2rem}
+.trust-items{display:flex;flex-direction:column;gap:.85rem;margin-top:1.5rem}
+.trust-item{display:flex;align-items:flex-start;gap:1rem;background:#fff;border:1px solid var(--border);border-radius:12px;padding:1rem}
+.trust-icon{width:40px;height:40px;border-radius:10px;background:var(--red-light);color:var(--red);display:grid;place-items:center;font-size:1.1rem;flex-shrink:0}
+.trust-item-title{font-size:.95rem;font-weight:700;margin-bottom:.2rem}
+.trust-item-desc{font-size:.82rem;color:var(--muted);line-height:1.55}
+.trust-card{background:linear-gradient(135deg,#1e3a5f,#1e40af);color:#fff;border-radius:20px;padding:2rem;height:100%}
+.trust-card h3{font-size:1.15rem;font-weight:800;display:flex;align-items:center;gap:.6rem;margin-bottom:.85rem}
+.trust-card p{font-size:.9rem;opacity:.9;line-height:1.7;margin-bottom:1.25rem}
+.trust-card-footer{display:flex;align-items:center;gap:.75rem;border-top:1px solid rgba(255,255,255,.15);padding-top:1.25rem}
+.trust-card-footer p{font-size:.85rem;opacity:.85}
+.trust-card-footer strong{display:block;font-weight:700}
+@media(max-width:800px){.trust-grid{grid-template-columns:1fr}}
+
+/* ── SCENARIOS ── */
+.scenarios-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:1.25rem;margin-top:2.5rem}
+.scenario-card{background:#fff;border:1px solid var(--border);border-radius:16px;padding:1.5rem}
+.scenario-icon{font-size:1.5rem;margin-bottom:.75rem}
+.scenario-title{font-weight:700;font-size:1rem;margin-bottom:.4rem}
+.scenario-text{font-size:.85rem;color:var(--muted);line-height:1.65}
+.scenario-tag{margin-top:1rem;padding-top:.75rem;border-top:1px solid var(--border);font-size:.72rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+
+/* ── REGISTER ── */
+.register-section{background:linear-gradient(135deg,var(--red) 0%,#b72e1e 100%);padding:5rem 1.5rem;position:relative;overflow:hidden}
+.register-section::before{content:'';position:absolute;inset:0;background-image:radial-gradient(circle,rgba(255,255,255,.08) 1px,transparent 1px);background-size:36px 36px}
+.register-inner{max-width:1200px;margin:0 auto;display:grid;grid-template-columns:1.1fr 1fr;gap:3rem;align-items:center;position:relative}
+.register-left{color:#fff}
+.register-eyebrow{display:inline-flex;align-items:center;gap:.4rem;background:rgba(255,255,255,.2);border-radius:99px;padding:.35rem .9rem;font-size:.75rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;margin-bottom:1.25rem;backdrop-filter:blur(4px)}
+.register-title{font-size:clamp(1.75rem,3.5vw,2.6rem);font-weight:900;letter-spacing:-.02em;line-height:1.1;margin-bottom:1rem}
+.register-sub{font-size:1.05rem;opacity:.9;line-height:1.6;margin-bottom:1.75rem}
+.register-pills{display:flex;flex-wrap:wrap;gap:.6rem}
+.reg-pill{display:inline-flex;align-items:center;gap:.4rem;background:rgba(255,255,255,.15);border-radius:99px;padding:.4rem .85rem;font-size:.8rem;font-weight:600;backdrop-filter:blur(4px);color:#fff}
+.reg-pill::before{content:'✓';font-weight:900}
+.register-form-card{background:#fff;border-radius:20px;padding:2rem;box-shadow:0 20px 60px rgba(0,0,0,.2)}
+.form-header-badge{display:flex;align-items:center;gap:.4rem;font-size:.75rem;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--red);margin-bottom:.5rem}
+.form-title{font-size:1.4rem;font-weight:800;letter-spacing:-.01em;margin-bottom:1.25rem;color:var(--text)}
+.form-field{margin-bottom:1rem}
+.form-label{display:block;font-size:.82rem;font-weight:600;margin-bottom:.35rem;color:#374151}
+.form-input-wrap{display:flex;border:1.5px solid var(--border);border-radius:10px;overflow:hidden;transition:border-color .15s}
+.form-input-wrap:focus-within{border-color:var(--red);box-shadow:0 0 0 3px rgba(214,58,42,.1)}
+.form-prefix{display:flex;align-items:center;padding:0 .9rem;background:var(--grey);font-size:.85rem;font-weight:700;color:var(--muted);border-right:1.5px solid var(--border);white-space:nowrap}
+.form-input{width:100%;border:none;outline:none;padding:.8rem 1rem;font-size:.95rem;font-family:inherit;background:transparent;color:var(--text)}
+.form-input::placeholder{color:#9ca3af}
+.form-submit{width:100%;background:var(--red);color:#fff;border:none;border-radius:10px;padding:1rem;font-size:1rem;font-weight:800;font-family:inherit;cursor:pointer;margin-top:.5rem;transition:background .15s;display:flex;align-items:center;justify-content:center;gap:.5rem}
+.form-submit:hover{background:var(--red-dark)}
+.form-consent{font-size:.75rem;color:var(--muted);text-align:center;margin-top:.75rem;line-height:1.5}
+@media(max-width:800px){.register-inner{grid-template-columns:1fr}}
+
+/* ── FAQ ── */
+.faq-list{max-width:720px;margin:2.5rem auto 0;display:flex;flex-direction:column;gap:.75rem}
+.faq-item{background:#fff;border:1px solid var(--border);border-radius:12px;overflow:hidden}
+.faq-q{width:100%;text-align:left;background:none;border:none;padding:1.1rem 1.25rem;font-size:.95rem;font-weight:700;font-family:inherit;cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:1rem;color:var(--text);transition:background .1s}
+.faq-q:hover{background:var(--grey)}
+.faq-toggle{width:30px;height:30px;border-radius:50%;background:var(--red-light);color:var(--red);display:grid;place-items:center;font-size:1.1rem;font-weight:700;flex-shrink:0;transition:transform .2s}
+.faq-item.open .faq-toggle{transform:rotate(45deg)}
+.faq-a{display:none;padding:0 1.25rem 1.1rem;font-size:.88rem;color:var(--muted);line-height:1.7}
+.faq-item.open .faq-a{display:block}
+
+/* ── FOOTER ── */
+.footer{background:var(--grey);border-top:1px solid var(--border);padding:3rem 1.5rem 1.5rem}
+.footer-inner{max-width:1200px;margin:0 auto;display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:2rem;padding-bottom:2rem;border-bottom:1px solid var(--border)}
+.footer-brand p{font-size:.85rem;color:var(--muted);margin-top:.5rem;max-width:260px;line-height:1.6}
+.footer-brand-sub{display:flex;align-items:center;gap:.4rem;font-size:.78rem;color:var(--muted);margin-top:.75rem}
+.footer-logo{display:flex;align-items:center;gap:.5rem;font-weight:800;font-size:1.05rem;color:var(--text);text-decoration:none}
+.footer-logo-icon{width:32px;height:32px;background:var(--red);border-radius:8px;display:grid;place-items:center;color:#fff;font-size:.9rem}
+.footer-col h4{font-size:.8rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--text);margin-bottom:.85rem}
+.footer-col ul{list-style:none;display:flex;flex-direction:column;gap:.5rem}
+.footer-col a{text-decoration:none;font-size:.87rem;color:var(--muted);transition:color .15s}
+.footer-col a:hover{color:var(--text)}
+.footer-bottom{max-width:1200px;margin:.75rem auto 0;font-size:.78rem;color:var(--muted)}
+@media(max-width:700px){
+  .footer-inner{grid-template-columns:1fr 1fr}
+  .footer-brand{grid-column:1/-1}
+}
+
+/* ── CARD TOOL SECTION ── */
+.tool-section{padding:4rem 1.5rem;background:#fff}
+.tool-inner{max-width:800px;margin:0 auto}
+#root{margin-top:1rem}
+
+/* ── UTIL ── */
+.arrow{font-size:1.1rem;transition:transform .15s}
+a:hover .arrow{transform:translateX(3px)}
+</style>
 </head>
-<body class="bg-stone-100">
-<div id="root"></div>
+<body>
+
+<!-- NAV -->
+<nav class="nav">
+  <div class="nav-inner">
+    <a href="/" class="nav-logo">
+      <div class="nav-logo-icon">⛨</div>
+      BlockMyCard<span>.in</span>
+    </a>
+    <ul class="nav-links">
+      <li><a href="#features">Features</a></li>
+      <li><a href="#stats">Fraud Data</a></li>
+      <li><a href="#how">How it Works</a></li>
+      <li><a href="#block">Block Steps</a></li>
+      <li><a href="#card-tool">Card Blocker</a></li>
+    </ul>
+    <a href="#register" class="nav-cta">Register Free</a>
+    <button class="nav-toggle" aria-label="Menu">☰</button>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-inner">
+    <div>
+      <div class="hero-badge">🚨 Emergency card blocking</div>
+      <h1>Your wallet is stolen.<br><span class="accent">You have 4 minutes.</span></h1>
+      <p>Fraudsters drain the average Indian account in under 4 minutes. Without your card numbers saved, you cannot block them fast enough. BlockMyCard keeps every card number in one place so you can act quickly.</p>
+      <div class="hero-btns">
+        <a href="#register" class="btn-primary">Register Free — 60 Seconds <span class="arrow">→</span></a>
+        <a href="#card-tool" class="btn-secondary">Block your card</a>
+      </div>
+      <div class="hero-pills">
+        <span class="pill"><span class="pill-dot"></span>Free</span>
+        <span class="pill"><span class="pill-dot"></span>For Indian banks</span>
+        <span class="pill"><span class="pill-dot"></span>Any phone</span>
+        <span class="pill"><span class="pill-dot"></span>All cards protected</span>
+      </div>
+    </div>
+    <div class="hero-mockup">
+      <div class="mockup-alert">
+        <div class="alert-icon">⚠️</div>
+        <div><strong style="font-size:.75rem">Wallet lost alert</strong><br><span style="font-size:.65rem;color:var(--muted)">Illustrative preview</span></div>
+      </div>
+      <div class="mockup-phone">
+        <div class="mockup-notch"></div>
+        <div class="mockup-header">
+          <div class="mockup-icon">⛨</div>
+          <div>
+            <div class="mockup-title">BlockMyCard</div>
+            <div class="mockup-sub">All cards protected</div>
+          </div>
+          <div class="mockup-online"></div>
+        </div>
+        <div class="card-stack">
+          <div class="mini-card mini-card-1">
+            <div class="mini-card-label">HDFC · Credit</div>
+            <div class="mini-card-num">•••• 4321</div>
+            <div class="mini-card-badge">SECURED</div>
+          </div>
+          <div class="mini-card mini-card-2">
+            <div class="mini-card-label">SBI · Debit</div>
+            <div class="mini-card-num">•••• 8890</div>
+            <div class="mini-card-badge">SECURED</div>
+          </div>
+          <div class="mini-card mini-card-3">
+            <div class="mini-card-label">ICICI · Credit</div>
+            <div class="mini-card-num">•••• 1204</div>
+            <div class="mini-card-badge">SECURED</div>
+          </div>
+        </div>
+        <button class="sos-btn">🚨 Block All Cards</button>
+        <div class="mockup-footer">
+          <span>🔒 Keep details safe</span>
+          <span>📱 Any phone</span>
+          <span>✓ Early access</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- STATS -->
+<section class="section section-alt" id="stats">
+  <div class="section-inner">
+    <div class="section-center">
+      <div class="section-eyebrow">Fraud in India, right now</div>
+      <h2 class="section-title">Fraud in India is rising sharply.</h2>
+      <p class="section-sub">Official RBI, NCRB &amp; I4C data — sourced from published annual reports.</p>
+    </div>
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-source"><span class="stat-source-label">RBI Annual Report</span></div>
+        <div class="stat-value">₹36,014 Cr</div>
+        <div class="stat-label">Total banking fraud losses (FY25)</div>
+        <div class="stat-change"><span>↑ +194% YoY</span><span class="stat-read">Read more →</span></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-source"><span class="stat-source-label">MHA / I4C</span></div>
+        <div class="stat-value">22.68 lakh</div>
+        <div class="stat-label">NCRP cybercrime complaints (2024)</div>
+        <div class="stat-change"><span>↑ +42% vs 2023</span><span class="stat-read">Read more →</span></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-source"><span class="stat-source-label">CFCFRMS / I4C</span></div>
+        <div class="stat-value">₹22,846 Cr</div>
+        <div class="stat-label">Citizens' fraud losses (2024)</div>
+        <div class="stat-change"><span>↑ 41× rise since 2021</span><span class="stat-read">Read more →</span></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-source"><span class="stat-source-label">NCRP / TRAI</span></div>
+        <div class="stat-value">90,000+</div>
+        <div class="stat-label">SIM-swap complaints (2024)</div>
+        <div class="stat-change"><span>↑ ₹500 Cr+ drained</span><span class="stat-read">Read more →</span></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-source"><span class="stat-source-label">NCRB</span></div>
+        <div class="stat-value">2.43%</div>
+        <div class="stat-label">Complaints that become FIRs</div>
+        <div class="stat-change"><span>↑ 97.57% never investigated</span><span class="stat-read">Read more →</span></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-source"><span class="stat-source-label">NPCI</span></div>
+        <div class="stat-value">&lt; 4 min</div>
+        <div class="stat-label">Avg. time to drain an account</div>
+        <div class="stat-change"><span>↑ Before you notice</span><span class="stat-read">Read more →</span></div>
+      </div>
+    </div>
+    <div class="stats-callout">
+      <strong>Only 2.43% of cybercrime complaints become an FIR.</strong> Early blocking and reporting give you the best chance of recovery.
+    </div>
+  </div>
+</section>
+
+<!-- FEATURES -->
+<section class="section" id="features">
+  <div class="section-inner">
+    <div class="section-center">
+      <div class="section-eyebrow">Features</div>
+      <h2 class="section-title">Peace of mind, in one tap</h2>
+      <p class="section-sub">Everything you need before, during, and after a loss.</p>
+    </div>
+    <div class="features-grid">
+      <div class="feature-card">
+        <div class="feature-icon">🔒</div>
+        <div class="feature-title">One vault for your cards</div>
+        <p class="feature-desc">Keep your card numbers and bank block helplines in one place so you are not searching during a panic.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">📱</div>
+        <div class="feature-title">Access from any phone</div>
+        <p class="feature-desc">If your phone is lost, sign in from a friend's phone or browser using your registered number.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">👨‍👩‍👧</div>
+        <div class="feature-title">Family contact option</div>
+        <p class="feature-desc">Add a trusted family member as an alternate contact so someone can help if you are unreachable.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">📄</div>
+        <div class="feature-title">Blocking templates</div>
+        <p class="feature-desc">Use pre-written messages to share with your bank when you report a lost or stolen card.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🛡️</div>
+        <div class="feature-title">FIR guidance</div>
+        <p class="feature-desc">Step-by-step guidance on filing a complaint with cybercrime.gov.in.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">⚡</div>
+        <div class="feature-title">Always free to register</div>
+        <p class="feature-desc">Core registration is free. Some advanced features may be optional paid services.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section class="section section-alt" id="how">
+  <div class="section-inner">
+    <div class="section-center">
+      <div class="section-eyebrow">How it works</div>
+      <h2 class="section-title">How BlockMyCard works</h2>
+      <p class="section-sub">Three calm steps today — for the three panicked minutes you might face tomorrow.</p>
+    </div>
+    <div class="steps-grid">
+      <div class="step-card">
+        <div class="step-img">🙋‍♀️<div class="step-num">Step 01</div></div>
+        <div class="step-body">
+          <div class="step-icon-row">
+            <div class="step-step-icon">🔑</div>
+            <div class="step-title">Register in 60 seconds</div>
+          </div>
+          <p class="step-desc">Just your name, mobile, and email. No card numbers yet.</p>
+        </div>
+      </div>
+      <div class="step-card">
+        <div class="step-img">💳<div class="step-num">Step 02</div></div>
+        <div class="step-body">
+          <div class="step-icon-row">
+            <div class="step-step-icon">🏦</div>
+            <div class="step-title">Add your cards &amp; mobile numbers</div>
+          </div>
+          <p class="step-desc">Type or scan the details you need to contact your bank quickly. You decide what to save.</p>
+        </div>
+      </div>
+      <div class="step-card">
+        <div class="step-img">👨‍👩‍👦<div class="step-num">Step 03</div></div>
+        <div class="step-body">
+          <div class="step-icon-row">
+            <div class="step-step-icon">👥</div>
+            <div class="step-title">Add your alternate or family member's details</div>
+          </div>
+          <p class="step-desc">Save contacts you can reach in case your phone is lost or unreachable.</p>
+        </div>
+      </div>
+    </div>
+    <div class="sleep-banner">
+      <div class="sleep-visual">🏡</div>
+      <div class="sleep-content">
+        <div class="sleep-badge">✨ Life after BlockMyCard</div>
+        <h3 class="sleep-title">Sleep easy. Travel easy. Live easy.</h3>
+        <p style="color:var(--muted);font-size:.92rem;line-height:1.7;margin-bottom:1rem">Lost wallets happen. Panic doesn't have to. With every card and SIM in one secure vault and a one-tap SOS, your family stays calm even on the worst day.</p>
+        <div class="sleep-points">
+          <span class="sleep-point">One place for all cards</span>
+          <span class="sleep-point">Access from any phone</span>
+          <span class="sleep-point">Family contact option</span>
+          <span class="sleep-point">Free to register</span>
+        </div>
+        <a href="#register" class="btn-primary" style="font-size:.9rem;padding:.75rem 1.5rem">Get this peace of mind — free <span class="arrow">→</span></a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- BLOCK STEPS -->
+<section class="section" id="block" style="background:#111827">
+  <div class="section-inner">
+    <div class="section-center">
+      <div class="section-eyebrow" style="color:#f87171">When your wallet is lost</div>
+      <h2 class="section-title" style="color:#fff">Block your card in 3 steps</h2>
+      <p class="section-sub" style="color:#9ca3af">No panic. No endless calls. Just login, pick your bank, and block.</p>
+    </div>
+    <div class="steps-grid">
+      <div class="step-card" style="background:#1f2937;border-color:#374151">
+        <div class="step-img" style="background:linear-gradient(135deg,#1e3a5f,#1e40af)">📲<div class="step-num">Step 01</div></div>
+        <div class="step-body">
+          <div class="step-icon-row">
+            <div class="step-step-icon">📱</div>
+            <div class="step-title" style="color:#fff">Log in with your mobile number</div>
+          </div>
+          <p class="step-desc" style="color:#9ca3af">Sign in securely. If your phone is lost, use the alternate number you saved during registration.</p>
+        </div>
+      </div>
+      <div class="step-card" style="background:#1f2937;border-color:#374151">
+        <div class="step-img" style="background:linear-gradient(135deg,#4c1d95,#7c3aed)">🏦<div class="step-num">Step 02</div></div>
+        <div class="step-body">
+          <div class="step-icon-row">
+            <div class="step-step-icon">🏦</div>
+            <div class="step-title" style="color:#fff">Select your bank and follow instructions</div>
+          </div>
+          <p class="step-desc" style="color:#9ca3af">Pick your bank from the list. BlockMyCard shows the exact helpline or link to block your card fast.</p>
+        </div>
+      </div>
+      <div class="step-card" style="background:#1f2937;border-color:#374151">
+        <div class="step-img" style="background:linear-gradient(135deg,#7f1d1d,#d63a2a)">💳<div class="step-num">Step 03</div><div class="step-paid">Paid service</div></div>
+        <div class="step-body">
+          <div class="step-icon-row">
+            <div class="step-step-icon">💳</div>
+            <div class="step-title" style="color:#fff">Select saved cards &amp; use templates</div>
+          </div>
+          <p class="step-desc" style="color:#9ca3af">If you saved card details, pick the cards to block and send pre-made blocking templates.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- TRUST -->
+<section class="section section-alt">
+  <div class="section-inner">
+    <div class="trust-grid">
+      <div>
+        <div class="section-eyebrow">Trust</div>
+        <h2 class="section-title">Built to help, not to oversell</h2>
+        <p class="section-sub">We are building BlockMyCard to help Indian cardholders react quickly when a wallet or phone is lost. We will publish our security practices as they are formalised, and we will not ask for more data than you choose to share.</p>
+        <div class="trust-items">
+          <div class="trust-item">
+            <div class="trust-icon">🔒</div>
+            <div>
+              <div class="trust-item-title">Store only what you need</div>
+              <p class="trust-item-desc">Save just the details required to contact your bank quickly. We do not require full PAN or CVV.</p>
+            </div>
+          </div>
+          <div class="trust-item">
+            <div class="trust-icon">🇮🇳</div>
+            <div>
+              <div class="trust-item-title">Built for Indian users</div>
+              <p class="trust-item-desc">Designed around Indian bank block-card helplines and RBI reporting timelines.</p>
+            </div>
+          </div>
+          <div class="trust-item">
+            <div class="trust-icon">🛡️</div>
+            <div>
+              <div class="trust-item-title">Security practices</div>
+              <p class="trust-item-desc">We're an early-stage service and will publish our security practices as they are formalised.</p>
+            </div>
+          </div>
+          <div class="trust-item">
+            <div class="trust-icon">✋</div>
+            <div>
+              <div class="trust-item-title">You stay in control</div>
+              <p class="trust-item-desc">You can view, edit or delete your saved details at any time from your account.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="trust-card">
+        <h3>🏦 Built for every Indian bank card</h3>
+        <p>Store the card numbers, helpline numbers and blocking steps for the cards you already hold — debit, credit, prepaid — from any Indian bank. When something goes wrong, you have every number in one place.</p>
+        <div class="trust-card-footer">
+          <span style="font-size:1.4rem">🤝</span>
+          <div>
+            <strong>Made for Indian users.</strong>
+            <p>Because losing a wallet shouldn't cost you your savings.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SCENARIOS -->
+<section class="section">
+  <div class="section-inner">
+    <div class="section-center">
+      <div class="section-eyebrow">When it matters</div>
+      <h2 class="section-title">Situations BlockMyCard is built for</h2>
+      <p class="section-sub">Illustrative scenarios — not customer testimonials.</p>
+    </div>
+    <div class="scenarios-grid">
+      <div class="scenario-card">
+        <div class="scenario-icon">🚦</div>
+        <div class="scenario-title">Purse snatched at a traffic signal</div>
+        <p class="scenario-text">Borrow any phone, sign in, and see every card helpline and blocking link in one place — no scrambling for numbers on hold.</p>
+        <div class="scenario-tag">Common street theft</div>
+      </div>
+      <div class="scenario-card">
+        <div class="scenario-icon">💳</div>
+        <div class="scenario-title">Multiple cards, zero notes</div>
+        <p class="scenario-text">If you carry three or four cards, you probably don't have their helplines saved anywhere. BlockMyCard keeps them together, ready when you need them.</p>
+        <div class="scenario-tag">Everyday cardholder</div>
+      </div>
+      <div class="scenario-card">
+        <div class="scenario-icon">👴</div>
+        <div class="scenario-title">Helping an elderly parent</div>
+        <p class="scenario-text">Family Circle lets you keep a parent's card list alongside yours, so you can act quickly if their wallet or phone is lost.</p>
+        <div class="scenario-tag">For family</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- REGISTER -->
+<section class="register-section" id="register">
+  <div class="register-inner">
+    <div class="register-left">
+      <div class="register-eyebrow">🚨 Don't be a statistic</div>
+      <h2 class="register-title">Don't wait for the panic call. Register free — right now.</h2>
+      <p class="register-sub">It takes 60 seconds. You'll thank yourself the day something goes wrong.</p>
+      <div class="register-pills">
+        <span class="reg-pill">Free to register</span>
+        <span class="reg-pill">Works on any smartphone</span>
+        <span class="reg-pill">Optional family contact</span>
+      </div>
+    </div>
+    <div class="register-form-card">
+      <div class="form-header-badge">📱 Register free · 60 seconds</div>
+      <div class="form-title">Create your card vault</div>
+      <div class="form-field">
+        <label class="form-label" for="reg-name">Full name</label>
+        <div class="form-input-wrap">
+          <input class="form-input" type="text" id="reg-name" placeholder="Ravi Kumar" autocomplete="name" />
+        </div>
+      </div>
+      <div class="form-field">
+        <label class="form-label" for="reg-mobile">Mobile number</label>
+        <div class="form-input-wrap">
+          <span class="form-prefix">+91</span>
+          <input class="form-input" type="tel" id="reg-mobile" placeholder="98765 43210" autocomplete="tel" inputmode="numeric" maxlength="10" />
+        </div>
+      </div>
+      <div class="form-field">
+        <label class="form-label" for="reg-email">Email address</label>
+        <div class="form-input-wrap">
+          <input class="form-input" type="email" id="reg-email" placeholder="you@example.com" autocomplete="email" />
+        </div>
+      </div>
+      <button class="form-submit" onclick="handleRegister()">Protect Me Now — Free Forever →</button>
+      <p class="form-consent">By registering you agree to our Terms &amp; Privacy Policy. Our security practices will be published as they are formalised.</p>
+    </div>
+  </div>
+</section>
+
+<!-- FAQ -->
+<section class="section section-alt">
+  <div class="section-inner">
+    <div class="section-center">
+      <div class="section-eyebrow">FAQ</div>
+      <h2 class="section-title">Everything you're thinking, answered</h2>
+    </div>
+    <div class="faq-list">
+      <div class="faq-item open">
+        <button class="faq-q" onclick="toggleFaq(this)">
+          Is BlockMyCard really free?
+          <span class="faq-toggle">+</span>
+        </button>
+        <div class="faq-a">Basic registration is free. Some advanced features, like saved-card blocking templates, may be optional paid services.</div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q" onclick="toggleFaq(this)">
+          Can BlockMyCard staff see my card numbers?
+          <span class="faq-toggle">+</span>
+        </button>
+        <div class="faq-a">We are designing the app so your data is visible only to you. Our security practices will be published as they are formalised.</div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q" onclick="toggleFaq(this)">
+          What if my phone is stolen too?
+          <span class="faq-toggle">+</span>
+        </button>
+        <div class="faq-a">You can log in from any browser at blockmycard.in using your registered email or mobile number. We also recommend adding an alternate family contact during registration.</div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q" onclick="toggleFaq(this)">
+          Which languages are supported?
+          <span class="faq-toggle">+</span>
+        </button>
+        <div class="faq-a">English, हिन्दी, मराठी and ગુજરાતી today. More languages may be added later.</div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q" onclick="toggleFaq(this)">
+          Does it also block SIM cards / mobile numbers?
+          <span class="faq-toggle">+</span>
+        </button>
+        <div class="faq-a">We plan to add SIM and mobile number blocking guidance. For urgent SIM blocking, please contact your telecom operator directly.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CARD TOOL -->
+<section class="tool-section" id="card-tool">
+  <div class="tool-inner">
+    <div class="section-eyebrow" style="justify-content:center;margin-bottom:.5rem">Card Blocker Tool</div>
+    <h2 class="section-title section-center" style="margin-bottom:.5rem">Block your card right now</h2>
+    <p style="text-align:center;color:var(--muted);margin-bottom:2rem;font-size:.9rem">Pre-filled SMS, email &amp; helpline numbers for major Indian banks.</p>
+    <div id="root"></div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer class="footer">
+  <div class="footer-inner">
+    <div class="footer-brand">
+      <a href="/" class="footer-logo">
+        <div class="footer-logo-icon">⛨</div>
+        BlockMyCard<span style="color:var(--red)">.in</span>
+      </a>
+      <p>Made in India with 💙 for every family, small business &amp; senior citizen.</p>
+      <div class="footer-brand-sub">🛡️ Helping Indian cardholders act fast</div>
+    </div>
+    <div class="footer-col">
+      <h4>Product</h4>
+      <ul>
+        <li><a href="#how">How it works</a></li>
+        <li><a href="#features">Features</a></li>
+        <li><a href="#">Family Circle</a></li>
+        <li><a href="#">Pricing</a></li>
+      </ul>
+    </div>
+    <div class="footer-col">
+      <h4>Company</h4>
+      <ul>
+        <li><a href="#">About</a></li>
+        <li><a href="#">Trust &amp; Security</a></li>
+        <li><a href="#">Privacy Policy</a></li>
+        <li><a href="#">Contact</a></li>
+      </ul>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    © 2026 BlockMyCard.in · All rights reserved · An initiative for a safer digital India.
+  </div>
+</footer>
+
 <script src="./otp-bridge.js"></script>
 <script src="./app.js"></script>
+<script>
+function toggleFaq(btn) {
+  const item = btn.closest('.faq-item');
+  item.classList.toggle('open');
+}
+function handleRegister() {
+  const name = document.getElementById('reg-name').value.trim();
+  const mobile = document.getElementById('reg-mobile').value.trim();
+  const email = document.getElementById('reg-email').value.trim();
+  if (!name) { alert('Please enter your full name.'); return; }
+  if (!/^\d{10}$/.test(mobile)) { alert('Please enter a valid 10-digit mobile number.'); return; }
+  // Scroll to card tool and pre-fill mobile
+  document.getElementById('card-tool').scrollIntoView({behavior:'smooth'});
+  setTimeout(() => {
+    const inputs = document.querySelectorAll('#root input[type="tel"]');
+    if (inputs.length > 0) {
+      inputs[0].value = mobile;
+      inputs[0].dispatchEvent(new Event('input', {bubbles:true}));
+    }
+  }, 800);
+}
+</script>
 </body>
 </html>
