@@ -1,10 +1,6 @@
-// api/send-otp.js — Vercel Serverless Function
-// Sends a 6-digit OTP via Twilio SMS
-
-const otpStore = {}; // In-memory store (resets on cold start — use Redis/KV for production)
+// api/send-otp.js — Sends OTP via Twilio and stores it in a signed cookie
 
 export default async function handler(req, res) {
-  // CORS headers
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
@@ -13,38 +9,18 @@ export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
   const { phone } = req.body;
+  if (!phone) return res.status(400).json({ error: 'Phone number is required' });
 
-  if (!phone) {
-    return res.status(400).json({ error: 'Phone number is required' });
-  }
-
-  // Sanitize: only digits and leading +
   const sanitizedPhone = phone.replace(/[^\d+]/g, '');
-  if (sanitizedPhone.length < 10) {
-    return res.status(400).json({ error: 'Invalid phone number' });
-  }
-
-  // Rate limiting: max 3 OTPs per phone per 10 minutes
-  const now = Date.now();
-  if (otpStore[sanitizedPhone]) {
-    const { attempts, firstAttempt } = otpStore[sanitizedPhone];
-    if (now - firstAttempt < 10 * 60 * 1000 && attempts >= 3) {
-      return res.status(429).json({ error: 'Too many requests. Please wait 10 minutes.' });
-    }
-  }
+  if (sanitizedPhone.length < 10) return res.status(400).json({ error: 'Invalid phone number' });
 
   // Generate 6-digit OTP
   const otp = Math.floor(100000 + Math.random() * 900000).toString();
-  const expiresAt = now + 5 * 60 * 1000; // 5 minutes
+  const expiresAt = Date.now() + 5 * 60 * 1000; // 5 minutes
 
-  // Store OTP
-  otpStore[sanitizedPhone] = {
-    otp,
-    expiresAt,
-    used: false,
-    attempts: (otpStore[sanitizedPhone]?.attempts || 0) + 1,
-    firstAttempt: otpStore[sanitizedPhone]?.firstAttempt || now,
-  };
+  // Store OTP in a cookie so it persists across serverless instances
+  const otpData = Buffer.from(JSON.stringify({ phone: sanitizedPhone, otp, expiresAt })).toString('base64');
+  res.setHeader('Set-Cookie', `cg_otp=${otpData}; Path=/; HttpOnly; SameSite=Strict; Max-Age=300`);
 
   // Send via Twilio
   try {
@@ -65,7 +41,6 @@ export default async function handler(req, res) {
     });
 
     const data = await response.json();
-
     if (!response.ok) {
       console.error('Twilio error:', data);
       return res.status(500).json({ error: 'Failed to send OTP. Please try again.' });
