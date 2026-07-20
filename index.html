@@ -1052,41 +1052,41 @@ function styleApp() {
       boxShadow: '0 24px 64px rgba(0,0,0,.25)', maxWidth: '100%', margin: '0', padding: '2rem',
     });
 
-    // 3a. Red eyebrow — inject form-header-badge before h2 if not present
+    // 3a. Red eyebrow badge — inject above h2, matching form-header-badge style
     const h2 = sec.querySelector('h2');
     if (h2) {
-      // Find or create the badge
-      let badge = sec.querySelector('.__fhb');
-      if (!badge) {
-        // Look for existing eyebrow element the app renders
-        const existing = sec.querySelector('[class*="text-xs"][class*="uppercase"], [class*="text-xs"][class*="tracking"]');
-        if (existing && existing !== h2) {
-          badge = existing;
-          badge.classList.add('__fhb');
-        } else {
-          // Create and insert before h2
-          badge = document.createElement('div');
-          badge.className = '__fhb';
-          h2.parentNode.insertBefore(badge, h2);
-        }
-        // Set text based on which step is showing
-        const stepText = h2.textContent.trim();
-        if (stepText.includes('Log in') || stepText.includes('Register')) badge.textContent = '📱 Log in · 60 seconds';
-        else if (stepText.includes('OTP') || stepText.includes('Enter')) badge.textContent = '🔐 Verify your number';
-        else if (stepText.includes('Add your cards')) badge.textContent = '💳 Step 2 of 3';
-        else if (stepText.includes('card vault') || stepText.includes('Create')) badge.textContent = '📱 Register free · 60 seconds';
-        else if (stepText.includes('Emergency') || stepText.includes('contact')) badge.textContent = '👨‍👩‍👧 Step 3 of 3';
-        else if (stepText.includes('email') || stepText.includes('Email')) badge.textContent = '📧 Almost done';
-        else if (stepText.includes('Save') || stepText.includes('cards for')) badge.textContent = '🔒 Secure your cards';
-        else if (stepText.includes('Hello') || stepText.includes('dashboard')) badge.textContent = '✅ Logged in';
-        else badge.textContent = '📱 Log in · 60 seconds';
-      }
+      // Remove any previously injected badge to avoid duplicates on re-render
+      sec.querySelectorAll('.__fhb').forEach(el => el.remove());
+
+      // Determine badge text from current step
+      const stepText = h2.textContent.trim();
+      let badgeText = '📱 Log in · 60 seconds';
+      if (stepText.includes('OTP') || stepText.includes('Enter')) badgeText = '🔐 Verify your number';
+      else if (stepText.includes('Add your cards'))               badgeText = '💳 Step 2 of 3';
+      else if (stepText.includes('card vault') || stepText.includes('Create')) badgeText = '📱 Register free · 60 seconds';
+      else if (stepText.includes('Emergency') || stepText.includes('contact')) badgeText = '👨‍👩‍👧 Step 3 of 3';
+      else if (stepText.includes('email') || stepText.includes('Email'))       badgeText = '📧 Almost done';
+      else if (stepText.includes('Save') || stepText.includes('cards for'))    badgeText = '🔒 Secure your cards';
+      else if (stepText.includes('Hello'))                                      badgeText = '✅ Logged in';
+
+      const badge = document.createElement('div');
+      badge.className = '__fhb';
+      badge.textContent = badgeText;
       Object.assign(badge.style, {
-        display: 'flex', alignItems: 'center', gap: '.4rem',
-        color: RED, fontSize: '.72rem', fontWeight: '700',
-        letterSpacing: '.08em', textTransform: 'uppercase',
+        display: 'flex',
+        alignItems: 'center',
+        gap: '.4rem',
+        color: RED,
+        fontSize: '.72rem',
+        fontWeight: '700',
+        letterSpacing: '.08em',
+        textTransform: 'uppercase',
         marginBottom: '.4rem',
+        fontFamily: INTER,
       });
+
+      // Insert directly before the h2
+      h2.parentNode.insertBefore(badge, h2);
     }
 
     // 3b. Card h2 title
