@@ -1,15 +1,25 @@
-// otp-bridge.js — real OTP via Twilio, token stored in sessionStorage
+// otp-bridge.js — real OTP via Twilio, HMAC-signed token in sessionStorage
 // app.js patched: Tb = window.__bmc_otp || "INVALID_OTP_PLACEHOLDER"
 (function () {
   let lastPhone = '';
   let _allowVerify = false;
+  let _approvedOtp = null; // kept in closure, not on window
+
+  // Overwrite window.__bmc_otp with a getter/setter so it can't be set externally
+  // Only our bridge can set the internal value
+  let _otpInternal = null;
+  Object.defineProperty(window, '__bmc_otp', {
+    get: () => _otpInternal,
+    set: () => {}, // ignore external sets
+    configurable: false,
+  });
 
   document.addEventListener('click', async function (e) {
     const btn = e.target.closest('button');
     if (!btn) return;
     const text = (btn.textContent || '').trim();
 
-    // ── SEND OTP ────────────────────────────────────────────────────
+    // ── SEND OTP ──────────────────────────────────────────────────
     if (text === 'Send OTP') {
       const phoneInput = document.querySelector('input[type="tel"]');
       const digits = (phoneInput?.value || '').trim();
@@ -17,6 +27,8 @@
 
       lastPhone = '+91' + digits;
       sessionStorage.removeItem('bmc_otp_token');
+      _approvedOtp = null;
+      _otpInternal = null;
 
       try {
         const res = await fetch('/api/send-otp', {
@@ -27,16 +39,18 @@
         const data = await res.json();
         if (data.token) {
           sessionStorage.setItem('bmc_otp_token', data.token);
-          console.log('[OTP] Token stored, SMS sent');
+          console.log('[OTP] SMS sent, token stored');
         } else {
-          console.error('[OTP] No token returned:', data);
+          console.error('[OTP] Send failed:', data.error);
+          alert(data.error || 'Failed to send OTP. Please try again.');
         }
       } catch (err) {
         console.error('[OTP] Send error:', err);
+        alert('Could not send OTP. Check your connection and try again.');
       }
     }
 
-    // ── VERIFY OTP ──────────────────────────────────────────────────
+    // ── VERIFY OTP ────────────────────────────────────────────────
     if (text === 'Verify OTP') {
       if (_allowVerify) { _allowVerify = false; return; }
 
@@ -64,8 +78,6 @@
         return;
       }
 
-      console.log('[OTP] Verifying', entered, 'for', lastPhone);
-
       try {
         const res = await fetch('/api/verify-otp', {
           method: 'POST',
@@ -73,13 +85,13 @@
           body: JSON.stringify({ phone: lastPhone, otp: entered, token }),
         });
         const data = await res.json();
-        console.log('[OTP] Verify result:', data);
 
         if (data.success) {
           sessionStorage.removeItem('bmc_otp_token');
-          window.__bmc_otp = entered;
+          _approvedOtp = entered;
+          _otpInternal = entered; // set via closure, not via window setter
           _allowVerify = true;
-          btn.click();
+          btn.click(); // re-fire — gv() runs, o === Tb ✓
         } else {
           alert(data.error || 'Incorrect OTP. Please try again.');
         }
