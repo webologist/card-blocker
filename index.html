@@ -299,95 +299,192 @@ body{font-family:'Inter',system-ui,sans-serif;background:#fff;color:#111827;line
   .tool-pills{justify-content:center}
 }
 
-/* ── OVERRIDE APP.JS INTERNAL UI ── */
-/* Strip the app's own page chrome — we provide it */
+/* ── OVERRIDE APP.JS INTERNAL UI — match screenshot exactly ── */
+
+/* 1. Strip the app's own full-page chrome */
 #root > div[class*="min-h-screen"]{
   background:transparent !important;
   min-height:unset !important;
 }
-/* Hide app header + footer — page has its own */
+
+/* 2. Hide app's own header, footer, and loading state */
 #root header,
-#root footer{
+#root footer,
+#root > div > div[class*="min-h-screen flex items-center"]{
   display:none !important;
 }
-/* Main area — transparent so red gradient shows through */
+
+/* 3. Main area — transparent, no padding */
 #root main{
   background:transparent !important;
   padding:0 !important;
   max-width:100% !important;
 }
-/* The white form card */
+
+/* 4. THE WHITE CARD — match screenshot: rounded-2xl, big shadow, white bg */
 #root section.bg-white{
   background:#fff !important;
   border-radius:20px !important;
   border:none !important;
-  box-shadow:0 20px 60px rgba(0,0,0,.22) !important;
+  box-shadow:0 24px 64px rgba(0,0,0,.25) !important;
   max-width:100% !important;
   margin:0 !important;
+  padding:2rem !important;
 }
-/* Other white divs (dashboard cards, etc.) */
-#root div.bg-white:not(section){
-  background:#fff !important;
-  border-radius:14px !important;
-}
-/* Primary buttons → red */
-#root button.w-full.bg-slate-900:not([disabled]){
-  background:var(--red) !important;
-  border-radius:10px !important;
-  padding:.9rem 1rem !important;
+
+/* 5. Card title — "Create your card vault" style */
+#root section.bg-white h2{
+  font-size:1.5rem !important;
   font-weight:800 !important;
-  font-size:.98rem !important;
+  color:#111827 !important;
+  letter-spacing:-.025em !important;
+  margin-bottom:1.25rem !important;
 }
-#root button.w-full.bg-slate-900:hover:not([disabled]){
-  background:var(--red-dark) !important;
-  transform:translateY(-1px) !important;
-}
-#root button.w-full.bg-slate-900:disabled{
-  background:#d1d5db !important;
-}
-/* Block card button */
-#root button.bg-red-700,#root a.bg-red-700{
-  background:var(--red) !important;
+
+/* 6. The red eyebrow label above title */
+#root section.bg-white > div:first-child,
+#root section.bg-white .text-xs.font-bold.uppercase.text-primary{
+  color:var(--red) !important;
+  font-size:.72rem !important;
   font-weight:700 !important;
+  letter-spacing:.08em !important;
+  display:flex !important;
+  align-items:center !important;
+  gap:.35rem !important;
+  margin-bottom:.4rem !important;
 }
-#root button.bg-red-700:hover{background:var(--red-dark) !important}
-/* Active toggle */
-#root button.bg-slate-900.border-slate-900{
-  background:var(--red) !important;
-  border-color:var(--red) !important;
-  border-radius:8px !important;
+
+/* 7. Form labels */
+#root section.bg-white label > span,
+#root section.bg-white .block.text-xs.font-semibold{
+  font-size:.85rem !important;
+  font-weight:600 !important;
+  color:#374151 !important;
+  margin-bottom:.4rem !important;
+  display:block !important;
 }
-/* Inputs */
+
+/* 8. Inputs — exactly like screenshot: tall, clean border, rounded */
 #root input,#root select,#root textarea{
-  border-color:#e5e7eb !important;
-  border-radius:8px !important;
+  border:1.5px solid #e5e7eb !important;
+  border-radius:10px !important;
+  padding:.8rem 1rem !important;
+  font-size:.95rem !important;
+  background:#fff !important;
+  color:#111827 !important;
+  width:100% !important;
+  transition:border-color .15s,box-shadow .15s !important;
 }
 #root input:focus,#root select:focus,#root textarea:focus{
   border-color:var(--red) !important;
   box-shadow:0 0 0 3px rgba(214,58,42,.12) !important;
   outline:none !important;
 }
-/* Headings */
-#root h2{font-weight:800 !important;letter-spacing:-.02em !important}
-/* Amber/warning → brand red */
+#root input::placeholder{color:#9ca3af !important}
+
+/* 9. +91 prefix — grey box left of mobile input */
+#root .flex.items-stretch.overflow-hidden,
+#root [class*="flex"][class*="border"][class*="rounded"]:has(input[type="tel"]){
+  border:1.5px solid #e5e7eb !important;
+  border-radius:10px !important;
+  overflow:hidden !important;
+}
+#root .flex.items-stretch.overflow-hidden input,
+#root [class*="flex"][class*="border"][class*="rounded"]:has(input) input{
+  border:none !important;
+  border-radius:0 !important;
+  box-shadow:none !important;
+}
+
+/* 10. PRIMARY SUBMIT BUTTON — big red, full width, matches screenshot exactly */
+#root button.w-full.bg-slate-900,
+#root button[class*="w-full"][class*="bg-slate-900"]{
+  background:var(--red) !important;
+  color:#fff !important;
+  border-radius:10px !important;
+  padding:1rem !important;
+  font-size:1rem !important;
+  font-weight:800 !important;
+  border:none !important;
+  cursor:pointer !important;
+  transition:background .15s,transform .1s !important;
+  margin-top:.25rem !important;
+}
+#root button.w-full.bg-slate-900:hover:not(:disabled){
+  background:var(--red-dark) !important;
+  transform:translateY(-1px) !important;
+}
+#root button.w-full.bg-slate-900:disabled{
+  background:#d1d5db !important;
+  cursor:not-allowed !important;
+  transform:none !important;
+}
+
+/* 11. Secondary/outline buttons */
+#root button.w-full:not(.bg-slate-900){
+  border-radius:10px !important;
+}
+
+/* 12. Toggle buttons (Own / Alternate) */
+#root button[class*="border-slate-900"][class*="bg-slate-900"]{
+  background:var(--red) !important;
+  border-color:var(--red) !important;
+  border-radius:8px !important;
+}
+
+/* 13. Block card red button */
+#root button.bg-red-700,#root a[class*="bg-red-700"]{
+  background:var(--red) !important;
+  font-weight:700 !important;
+  border-radius:8px !important;
+}
+#root button.bg-red-700:hover{background:var(--red-dark) !important}
+
+/* 14. Consent text at bottom */
+#root .text-center.text-xs.text-muted-foreground,
+#root p[class*="text-xs"][class*="text-center"]{
+  color:#9ca3af !important;
+  font-size:.75rem !important;
+  margin-top:.75rem !important;
+  line-height:1.5 !important;
+}
+
+/* 15. Error/success messages */
+#root [class*="bg-emerald"]{background:#059669 !important;border-radius:8px !important}
+#root [class*="bg-red-50"]{background:#fff5f5 !important}
+#root [class*="text-destructive"]{color:var(--red) !important}
+
+/* 16. Other white containers (dashboard) */
+#root div.bg-white:not(section){
+  background:#fff !important;
+  border-radius:12px !important;
+}
+
+/* 17. Dark instruction panels */
+#root [class*="bg-slate-900"][class*="text-white"]{
+  background:#1f2937 !important;
+  border-radius:10px !important;
+}
+
+/* 18. Test creds panel */
 #root .text-amber-700{color:var(--red) !important}
 #root .bg-amber-50{background:#fff5f5 !important}
 #root .border-amber-200{border-color:#fca5a5 !important}
-/* Active block border */
+
+/* 19. Active block border */
 #root .border-red-300{border-color:var(--red) !important;border-width:2px !important}
-/* Dark instruction panel */
-#root .bg-slate-900.text-white{background:#1f2937 !important;border-radius:10px !important}
-/* Simulated messages section */
+
+/* 20. Simulated messages (if shown) */
 #root section.mt-8{
-  background:rgba(255,255,255,.12) !important;
+  background:rgba(255,255,255,.1) !important;
   border-radius:12px !important;
   padding:1rem !important;
 }
-#root section.mt-8 h3{color:rgba(255,255,255,.8) !important}
-#root section.mt-8 .bg-white{background:#fff !important}
-/* Font everywhere */
+#root section.mt-8 h3{color:rgba(255,255,255,.75) !important}
+
+/* 21. Font everywhere — Inter */
 #root *{font-family:'Inter',system-ui,sans-serif !important}
-#root .font-mono,#root pre,#root [class*="font-mono"]{
+#root .font-mono,#root pre,#root [class*="font-mono"],#root code{
   font-family:'IBM Plex Mono','Courier New',monospace !important;
 }
 
@@ -851,9 +948,9 @@ a:hover .arrow{transform:translateX(3px)}
 <section class="tool-section" id="card-tool">
   <div class="tool-inner">
     <div class="tool-left">
-      <div class="tool-eyebrow">🚨 Emergency card blocking</div>
-      <h2 class="tool-title">Your wallet is gone.<br>Block your card<br>right now.</h2>
-      <p class="tool-sub">No account needed. Select your bank, get the pre-filled SMS &amp; email, and call the helpline — all in one place.</p>
+      <div class="tool-eyebrow">🚨 Card Blocker</div>
+      <h2 class="tool-title">Block your card<br>before the damage<br>is done.</h2>
+      <p class="tool-sub">Pre-filled SMS, email &amp; helpline numbers for every major Indian bank. Log in, pick your bank, and block in seconds.</p>
       <div class="tool-pills">
         <span class="tool-pill">Works on any phone</span>
         <span class="tool-pill">10 major Indian banks</span>
