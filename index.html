@@ -840,55 +840,85 @@ function styleApp() {
       const cls=btn.className||'';
       const txt=(btn.textContent||'').trim();
 
-      // Block button (dashboard) — keep red, not full-width
+      // ── BLOCK button (red-700) ──
       if(cls.includes('bg-red-700')){
-        Object.assign(btn.style,{background:RED,fontWeight:'700',borderRadius:'8px',color:'#fff',border:'none',cursor:'pointer',padding:'.4rem .9rem',fontSize:'.85rem'});
+        Object.assign(btn.style,{background:RED,fontWeight:'700',borderRadius:'8px',color:'#fff',border:'none',cursor:'pointer',padding:'.35rem .9rem',fontSize:'.82rem',display:'inline-flex',alignItems:'center',gap:'.3rem'});
         btn.onmouseenter=()=>btn.style.background=RED_DARK;
         btn.onmouseleave=()=>btn.style.background=RED;
         return;
       }
-      // "Add card" outline button (dashboard) — keep dark outline style
-      if(cls.includes('border-slate-900')&&!cls.includes('bg-slate-900')&&!cls.includes('w-full')){
-        Object.assign(btn.style,{borderRadius:'8px',border:'1.5px solid '+fgColor,color:fgColor,background:'transparent',cursor:'pointer',padding:'.45rem .9rem',fontWeight:'600',fontSize:'.875rem'});
+
+      // ── CANCEL (+ Add card toggle when active) ──
+      if(txt==='Cancel'){
+        Object.assign(btn.style,{background:'transparent',color:fgColor,border:'1.5px solid '+borderColor,borderRadius:'8px',padding:'.45rem 1rem',fontWeight:'600',fontSize:'.875rem',cursor:'pointer'});
+        btn.onmouseenter=()=>btn.style.borderColor=fgColor;
+        btn.onmouseleave=()=>btn.style.borderColor=borderColor;
+        return;
+      }
+
+      // ── + Add card toggle button (dashboard header) ──
+      if(txt==='+ Add card'&&!cls.includes('w-full')){
+        Object.assign(btn.style,{background:cardBg,color:fgColor,border:'1.5px solid '+borderColor,borderRadius:'8px',padding:'.45rem 1rem',fontWeight:'600',fontSize:'.875rem',cursor:'pointer'});
         btn.onmouseenter=()=>{btn.style.background=fgColor;btn.style.color=cardBg;};
-        btn.onmouseleave=()=>{btn.style.background='transparent';btn.style.color=fgColor;};
+        btn.onmouseleave=()=>{btn.style.background=cardBg;btn.style.color=fgColor;};
         return;
       }
-      // Remove / Cancel (dashboard)
-      if(txt==='Remove'||txt==='Cancel'){
-        Object.assign(btn.style,{color:RED,background:'none',border:'none',cursor:'pointer',fontSize:'.8rem',fontWeight:'600'});
+
+      // ── + Add card button INSIDE the inline form (w-full) ──
+      if((txt==='+ Add card'||txt==='Add card')&&cls.includes('w-full')){
+        Object.assign(btn.style,{width:'100%',background:fgColor,color:cardBg,border:'none',borderRadius:'10px',padding:'.75rem',fontWeight:'700',fontSize:'.95rem',cursor:'pointer',marginBottom:'.75rem'});
+        btn.onmouseenter=()=>btn.style.opacity='.85';
+        btn.onmouseleave=()=>btn.style.opacity='1';
         return;
       }
-      // Log out / Exit admin
+
+      // ── Remove card (dashboard card list) ──
+      if(txt==='Remove'){
+        Object.assign(btn.style,{color:RED,background:'none',border:'none',cursor:'pointer',fontSize:'.78rem',fontWeight:'600',padding:'0'});
+        return;
+      }
+
+      // ── Log out / Exit admin ──
       if(txt==='Log out'||txt==='Exit admin'){
         Object.assign(btn.style,{color:'rgba(255,255,255,.75)',background:'none',border:'none',cursor:'pointer',textDecoration:'underline',fontSize:'.875rem'});
         return;
       }
-      // Primary full-width CTA (Send OTP, Verify OTP, Continue, YES-Save)
+
+      // ── Close (blocking detail panel) ──
+      if(txt==='Close'||txt==='✕'){
+        Object.assign(btn.style,{background:'transparent',color:fg2Color,border:'1px solid '+borderColor,borderRadius:'6px',padding:'.25rem .65rem',fontWeight:'600',fontSize:'.8rem',cursor:'pointer'});
+        return;
+      }
+
+      // ── Primary full-width CTA (Send OTP, Verify OTP, Continue, YES-Save) ──
       if(cls.includes('w-full')&&cls.includes('bg-slate-900')){
         Object.assign(btn.style,{display:'flex',width:'100%',alignItems:'center',justifyContent:'center',gap:'.5rem',background:btn.disabled?'#d1d5db':RED,color:'#fff',border:'none',borderRadius:'10px',padding:'1rem',fontSize:'1rem',fontWeight:'800',cursor:btn.disabled?'not-allowed':'pointer',marginTop:'.5rem'});
         btn.onmouseenter=()=>{if(!btn.disabled){btn.style.background=RED_DARK;btn.style.transform='translateY(-1px)';}};
         btn.onmouseleave=()=>{btn.style.background=btn.disabled?'#d1d5db':RED;btn.style.transform='';};
         return;
       }
-      // NO — Continue free (outline full-width)
+
+      // ── NO — Continue free (outline full-width) ──
       if(cls.includes('w-full')&&(cls.includes('border-slate-300')||cls.includes('border border-slate'))){
         Object.assign(btn.style,{width:'100%',borderRadius:'10px',border:'1.5px solid '+borderColor,color:fgColor,background:'transparent',padding:'.85rem 1rem',fontWeight:'600',cursor:'pointer'});
         return;
       }
-      // Active Own/Alternate + Debit/Credit pill toggle
-      if(cls.includes('bg-slate-900')&&(cls.includes('flex-1')||!cls.includes('w-full'))){
-        Object.assign(btn.style,{background:RED,borderColor:RED,color:'#fff',borderRadius:'99px',padding:'.45rem 1.1rem',fontSize:'.85rem',fontWeight:'700',border:'none'});
+
+      // ── Active Own/Alternate pill (selected) ──
+      if(cls.includes('bg-slate-900')&&cls.includes('flex-1')){
+        Object.assign(btn.style,{background:fgColor,color:cardBg,borderRadius:'10px',padding:'.6rem 1rem',fontSize:'.9rem',fontWeight:'700',border:'none',flex:'1'});
         return;
       }
-      // Inactive pill toggle
+
+      // ── Inactive Own/Alternate pill ──
       if(cls.includes('border-slate-300')&&cls.includes('flex-1')&&!cls.includes('bg-slate-900')){
-        Object.assign(btn.style,{borderRadius:'99px',border:'1.5px solid '+borderColor,color:fg2Color,background:isDark?'#0f172a':'#f9fafb',padding:'.45rem 1.1rem',fontSize:'.85rem',fontWeight:'600'});
+        Object.assign(btn.style,{borderRadius:'10px',border:'1.5px solid '+borderColor,color:fg2Color,background:'transparent',padding:'.6rem 1rem',fontSize:'.9rem',fontWeight:'600',flex:'1'});
         return;
       }
-      // Skip / Go back underline links
+
+      // ── Go back / skip underline ──
       if(cls.includes('underline')||(cls.includes('text-slate')&&cls.includes('font-semibold'))){
-        Object.assign(btn.style,{color:RED,background:'none',border:'none',cursor:'pointer'});
+        Object.assign(btn.style,{color:fg2Color,background:'none',border:'none',cursor:'pointer',textDecoration:'underline',fontSize:'.85rem'});
       }
     });
     sec.querySelectorAll('p').forEach(p=>{
@@ -902,7 +932,27 @@ function styleApp() {
     sec.querySelectorAll('[role="alert"],[class*="text-destructive"],[class*="text-red-8"]').forEach(el=>el.style.color=RED);
   });
 
-  // Dashboard: white card items
+  // Dashboard card list items (flex justify-between, border-b)
+  root.querySelectorAll('[class*="border-b"][class*="flex"][class*="justify-between"]').forEach(row=>{
+    Object.assign(row.style,{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'.75rem 0',borderBottom:'1px solid '+borderColor,gap:'.5rem'});
+  });
+
+  // Dashboard card group wrapper (bank name + card + block button)
+  root.querySelectorAll('[class*="mb-3"],[class*="mb-4"]').forEach(el=>{
+    const cls=el.className||'';
+    if(cls.includes('mb-3')&&!cls.includes('bg-')&&!cls.includes('text-')&&el.tagName==='DIV'){
+      Object.assign(el.style,{marginBottom:'.75rem',paddingBottom:'.75rem',borderBottom:'1px solid '+borderColor});
+    }
+  });
+
+  // Inline add-card form (bg-white border border-slate-300 rounded-lg p-4)
+  root.querySelectorAll('[class*="border-slate-300"][class*="rounded-lg"]').forEach(el=>{
+    const cls=el.className||'';
+    if(cls.includes('bg-white')||cls.includes('border-dashed')||cls.includes('p-4')||cls.includes('p-8'))
+      Object.assign(el.style,{background:isDark?'rgba(255,255,255,.04)':'#f8fafc',borderRadius:'12px',border:'1.5px solid '+borderColor,padding:'1rem',marginBottom:'1rem'});
+  });
+
+  // All other white divs
   root.querySelectorAll('div.bg-white').forEach(d=>Object.assign(d.style,{background:cardBg,borderRadius:'12px'}));
 
   // Block button (dashboard, outside section loop)
@@ -921,11 +971,21 @@ function styleApp() {
       Object.assign(el.style,{background:isDark?'#020617':'#1f2937',borderRadius:'10px',padding:'1rem',color:'#f1f5f9'});
   });
 
-  // "Add card" outline button in dashboard (outside section loop)
-  root.querySelectorAll('button[class*="border-slate-900"]:not([class*="bg-slate-900"])').forEach(btn=>{
-    Object.assign(btn.style,{borderRadius:'8px',border:'1.5px solid '+fgColor,color:fgColor,background:'transparent',cursor:'pointer',padding:'.45rem .9rem',fontWeight:'600',fontSize:'.875rem'});
-    btn.onmouseenter=()=>{btn.style.background=fgColor;btn.style.color=cardBg;};
-    btn.onmouseleave=()=>{btn.style.background='transparent';btn.style.color=fgColor;};
+  // + Add card / Cancel toggle button (outside section loop)
+  root.querySelectorAll('button[class*="border-slate-900"]:not([class*="bg-slate-900"]):not([class*="w-full"])').forEach(btn=>{
+    const txt=(btn.textContent||'').trim();
+    if(txt==='Cancel'){
+      Object.assign(btn.style,{background:'transparent',color:fgColor,border:'1.5px solid '+borderColor,borderRadius:'8px',padding:'.45rem 1rem',fontWeight:'600',fontSize:'.875rem',cursor:'pointer'});
+    } else {
+      Object.assign(btn.style,{borderRadius:'8px',border:'1.5px solid '+fgColor,color:fgColor,background:'transparent',cursor:'pointer',padding:'.45rem .9rem',fontWeight:'600',fontSize:'.875rem'});
+      btn.onmouseenter=()=>{btn.style.background=fgColor;btn.style.color=cardBg;};
+      btn.onmouseleave=()=>{btn.style.background='transparent';btn.style.color=fgColor;};
+    }
+  });
+
+  // + Add card button inside inline form (w-full, outside section loop)
+  root.querySelectorAll('button[class*="border-slate-900"][class*="w-full"]').forEach(btn=>{
+    Object.assign(btn.style,{width:'100%',background:fgColor,color:cardBg,border:'none',borderRadius:'10px',padding:'.75rem',fontWeight:'700',fontSize:'.95rem',cursor:'pointer',marginBottom:'.75rem'});
   });
 
   // Amber warning (unverified bank)
