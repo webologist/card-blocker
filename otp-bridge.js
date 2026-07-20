@@ -1,82 +1,82 @@
-// otp-bridge.js — Intercepts CardGuard OTP flow and uses real Twilio SMS
-// Loaded BEFORE app.js
-
+// otp-bridge.js — Twilio OTP bridge v3 (cookie-aware)
 (function () {
   let lastPhone = '';
+  let _verifying = false;
 
-  // Step 1: When "Send OTP" is clicked, capture the phone and send real SMS
+  // Step 1: Intercept "Send OTP" — fire real Twilio SMS
   document.addEventListener('click', async function (e) {
+    if (_verifying) return;
+
     const btn = e.target.closest('button');
     if (!btn) return;
-
     const text = btn.textContent?.trim();
+
     if (text === 'Send OTP') {
       const phoneInput = document.querySelector('input[type="tel"]');
       if (phoneInput && /^\d{10}$/.test(phoneInput.value)) {
         lastPhone = '+91' + phoneInput.value;
         try {
-          await fetch('/api/send-otp', {
+          const res = await fetch('/api/send-otp', {
             method: 'POST',
+            credentials: 'same-origin',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ phone: lastPhone }),
           });
-          console.log('[OTP] Real SMS sent to', lastPhone);
+          const data = await res.json();
+          console.log('[OTP] Send result:', data);
         } catch (err) {
-          console.warn('[OTP] SMS send error:', err);
+          console.warn('[OTP] Send error:', err);
         }
       }
     }
 
-    // Step 2: When "Verify OTP" is clicked, intercept and call real API
+    // Step 2: Intercept "Verify OTP" — check against real Twilio OTP
     if (text === 'Verify OTP') {
       e.stopImmediatePropagation();
       e.preventDefault();
 
-      // Find the OTP input (the one currently visible, not the phone input)
-      const inputs = document.querySelectorAll('input[type="tel"]');
+      // Find OTP value from visible input
       let otpValue = '';
-      inputs.forEach(inp => {
+      document.querySelectorAll('input[type="tel"]').forEach(inp => {
         if (/^\d{4,6}$/.test(inp.value)) otpValue = inp.value;
       });
 
       if (!otpValue) {
-        alert('Please enter the OTP from your SMS.');
+        alert('Please enter the OTP received in your SMS.');
         return;
       }
 
-      // Use the last phone if we have it, otherwise try to find it
+      // Recover phone if lost
       if (!lastPhone) {
-        // Try to find phone from page text (shown as "OTP sent to +91...")
-        const bodyText = document.body.innerText;
-        const match = bodyText.match(/\+91(\d{10})/);
+        const match = document.body.innerText.match(/\+91(\d{10})/);
         if (match) lastPhone = '+91' + match[1];
       }
+
+      console.log('[OTP] Verifying', otpValue, 'for', lastPhone);
 
       try {
         const res = await fetch('/api/verify-otp', {
           method: 'POST',
+          credentials: 'same-origin',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ phone: lastPhone, otp: otpValue }),
         });
         const data = await res.json();
+        console.log('[OTP] Verify result:', data);
 
         if (data.success) {
-          // Verified! Now trick the app into accepting it by setting OTP to 1234
-          // and clicking verify again (the app's internal check)
-          inputs.forEach(inp => {
+          // Swap the OTP field value to the demo "1234" so the app accepts it
+          document.querySelectorAll('input[type="tel"]').forEach(inp => {
             if (/^\d{4,6}$/.test(inp.value)) {
-              // Set value to the demo OTP the app expects
-              const nativeInputValueSetter = Object.getOwnPropertyDescriptor(
-                window.HTMLInputElement.prototype, 'value'
-              ).set;
-              nativeInputValueSetter.call(inp, '1234');
+              const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set;
+              setter.call(inp, '1234');
               inp.dispatchEvent(new Event('input', { bubbles: true }));
             }
           });
-          // Now click the button again without interception
+          // Click the button again — this time let it through
           _verifying = true;
           btn.click();
-          _verifying = false;
+          setTimeout(() => { _verifying = false; }, 500);
         } else {
           alert(data.error || 'Incorrect OTP. Please try again.');
         }
@@ -87,14 +87,5 @@
     }
   }, true);
 
-  // Flag to allow the second (internal) verify click to pass through
-  let _verifying = false;
-  document.addEventListener('click', function (e) {
-    const btn = e.target.closest('button');
-    if (btn?.textContent?.trim() === 'Verify OTP' && !_verifying) {
-      e.stopImmediatePropagation();
-    }
-  }, true);
-
-  console.log('[CardGuard] Twilio OTP bridge v2 loaded');
+  console.log('[CardGuard] Twilio OTP bridge v3 loaded');
 })();
