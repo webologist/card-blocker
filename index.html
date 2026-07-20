@@ -1028,129 +1028,157 @@ function styleApp() {
   const root = document.getElementById('root');
   if (!root || !root.firstChild) return;
 
-  /* 1. Outer wrapper — transparent, no min-height */
+  // 1. Strip app's own page chrome
   const wrap = root.querySelector('div[class*="min-h-screen"]');
-  if (wrap) {
-    wrap.style.cssText = 'background:transparent!important;min-height:unset!important;font-family:'+INTER;
-  }
-
-  /* 2. Hide app's own header completely */
+  if (wrap) Object.assign(wrap.style, { background: 'transparent', minHeight: 'unset', fontFamily: INTER });
   const hdr = root.querySelector('header');
   if (hdr) hdr.style.display = 'none';
-
-  /* 3. Hide app's own footer */
   const ftr = root.querySelector('footer');
   if (ftr) ftr.style.display = 'none';
-
-  /* 4. Main — transparent */
   const main = root.querySelector('main');
-  if (main) {
-    main.style.cssText = 'background:transparent!important;padding:0!important;max-width:100%!important';
-  }
+  if (main) Object.assign(main.style, { background: 'transparent', padding: '0', maxWidth: '100%' });
 
-  /* 5. The white card (section.bg-white) — float it with big shadow */
-  root.querySelectorAll('section').forEach(s => {
-    if (s.className.includes('bg-white')) {
-      s.style.cssText = [
-        'background:#fff!important',
-        'border-radius:20px!important',
-        'border:none!important',
-        'box-shadow:0 24px 64px rgba(0,0,0,.25)!important',
-        'max-width:100%!important',
-        'margin:0!important',
-        'padding:2rem!important',
-      ].join(';');
-    }
-  });
-
-  /* 6. All text — Inter */
+  // 2. Font everywhere
   root.querySelectorAll('*').forEach(el => {
-    if (!el.className.includes('font-mono') && el.tagName !== 'PRE' && el.tagName !== 'CODE') {
-      el.style.fontFamily = INTER;
-    }
+    const cls = el.className || '';
+    el.style.fontFamily = (cls.includes('font-mono') || el.tagName === 'PRE' || el.tagName === 'CODE') ? MONO : INTER;
   });
 
-  /* 7. Mono elements */
-  root.querySelectorAll('[class*="font-mono"],pre,code').forEach(el => {
-    el.style.fontFamily = MONO;
+  // 3. THE WHITE CARD — match "Create your card vault" exactly
+  root.querySelectorAll('section').forEach(sec => {
+    if (!(sec.className || '').includes('bg-white')) return;
+    Object.assign(sec.style, {
+      background: '#fff', borderRadius: '20px', border: 'none',
+      boxShadow: '0 24px 64px rgba(0,0,0,.25)', maxWidth: '100%', margin: '0', padding: '2rem',
+    });
+
+    // 3a. Red eyebrow
+    const eyebrow = sec.querySelector('[class*="text-xs"][class*="uppercase"], [class*="text-xs"][class*="tracking"]');
+    if (eyebrow) Object.assign(eyebrow.style, {
+      color: RED, fontSize: '.72rem', fontWeight: '700', letterSpacing: '.08em',
+      textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '.35rem', marginBottom: '.4rem',
+    });
+
+    // 3b. Card h2 title
+    sec.querySelectorAll('h2').forEach(h => Object.assign(h.style, {
+      fontSize: '1.5rem', fontWeight: '800', color: '#111827',
+      letterSpacing: '-.025em', lineHeight: '1.2', marginBottom: '1.25rem', fontFamily: INTER,
+    }));
+
+    // 3c. Labels
+    sec.querySelectorAll('label').forEach(lbl => {
+      lbl.style.display = 'block';
+      lbl.style.marginBottom = '.85rem';
+      const span = lbl.querySelector('span.block, span[class*="text-xs"], span[class*="font-semibold"]');
+      if (span) Object.assign(span.style, {
+        display: 'block', fontSize: '.85rem', fontWeight: '600', color: '#374151', marginBottom: '.4rem',
+      });
+    });
+
+    // 3d. Input wrapper (flex+overflow div around input+prefix)
+    sec.querySelectorAll('.flex.items-stretch, [class*="overflow-hidden"].flex').forEach(w => {
+      Object.assign(w.style, {
+        display: 'flex', border: '1.5px solid #e5e7eb', borderRadius: '10px',
+        overflow: 'hidden', background: '#fff', transition: 'border-color .15s,box-shadow .15s',
+      });
+      const pfx = w.querySelector('span');
+      if (pfx && !pfx.querySelector('svg') && !pfx.querySelector('button')) Object.assign(pfx.style, {
+        display: 'flex', alignItems: 'center', padding: '0 .9rem',
+        background: '#f9fafb', fontSize: '.85rem', fontWeight: '700',
+        color: '#6b7280', borderRight: '1.5px solid #e5e7eb', whiteSpace: 'nowrap',
+      });
+    });
+
+    // 3e. Inputs inside wrapper (no own border)
+    sec.querySelectorAll('.flex.items-stretch input, [class*="overflow-hidden"] input').forEach(el => {
+      Object.assign(el.style, {
+        border: 'none', outline: 'none', padding: '.8rem 1rem',
+        fontSize: '.95rem', background: 'transparent', color: '#111827', width: '100%', fontFamily: INTER,
+      });
+      const getWrap = () => el.closest('.flex.items-stretch') || el.closest('[class*="overflow-hidden"]');
+      el.onfocus = () => { const w=getWrap(); if(w){w.style.borderColor=RED; w.style.boxShadow='0 0 0 3px rgba(214,58,42,.12)';} };
+      el.onblur  = () => { const w=getWrap(); if(w){w.style.borderColor='#e5e7eb'; w.style.boxShadow='none';} };
+    });
+
+    // 3f. Standalone inputs (not inside flex wrapper)
+    sec.querySelectorAll('input, select, textarea').forEach(el => {
+      if (el.closest('.flex.items-stretch') || el.closest('[class*="overflow-hidden"]')) return;
+      Object.assign(el.style, {
+        border: '1.5px solid #e5e7eb', borderRadius: '10px', padding: '.8rem 1rem',
+        fontSize: '.95rem', background: '#fff', color: '#111827', width: '100%', outline: 'none', fontFamily: INTER,
+      });
+      el.onfocus = () => { el.style.borderColor=RED; el.style.boxShadow='0 0 0 3px rgba(214,58,42,.12)'; };
+      el.onblur  = () => { el.style.borderColor='#e5e7eb'; el.style.boxShadow='none'; };
+    });
+
+    // 3g. Primary CTA button — "Protect Me Now" style
+    sec.querySelectorAll('button').forEach(btn => {
+      const cls = btn.className || '';
+      if (cls.includes('w-full') && cls.includes('bg-slate-900')) {
+        Object.assign(btn.style, {
+          display: 'flex', width: '100%', alignItems: 'center', justifyContent: 'center', gap: '.5rem',
+          background: btn.disabled ? '#d1d5db' : RED, color: '#fff', border: 'none', borderRadius: '10px',
+          padding: '1rem', fontSize: '1rem', fontWeight: '800', cursor: btn.disabled ? 'not-allowed' : 'pointer',
+          marginTop: '.5rem', fontFamily: INTER, transition: 'background .15s,transform .1s',
+        });
+        btn.onmouseenter = () => { if (!btn.disabled) { btn.style.background=RED_DARK; btn.style.transform='translateY(-1px)'; }};
+        btn.onmouseleave = () => { btn.style.background=btn.disabled?'#d1d5db':RED; btn.style.transform=''; };
+      }
+      // Active Own/Alternate toggle
+      if (cls.includes('bg-slate-900') && !cls.includes('w-full')) {
+        Object.assign(btn.style, { background: RED, borderColor: RED, borderRadius: '8px', color: '#fff' });
+      }
+      // Inactive toggle
+      if (cls.includes('border-slate-300') && cls.includes('flex-1') && !cls.includes('bg-slate-900')) {
+        Object.assign(btn.style, { borderRadius: '8px', border: '1.5px solid #e5e7eb', color: '#374151', background: '#fff' });
+      }
+      // Skip / Go back links
+      if (cls.includes('underline') || (cls.includes('text-slate') && cls.includes('font-semibold'))) {
+        Object.assign(btn.style, { color: RED, background: 'none', border: 'none', cursor: 'pointer' });
+      }
+    });
+
+    // 3h. Small consent / hint text
+    sec.querySelectorAll('p').forEach(p => {
+      const cls = p.className || '';
+      if (cls.includes('text-xs') || cls.includes('text-slate-4') || cls.includes('text-slate-5') || cls.includes('text-muted')) {
+        Object.assign(p.style, { fontSize: '.75rem', color: '#9ca3af', textAlign: 'center', lineHeight: '1.5' });
+      }
+    });
+
+    // 3i. Test creds / amber panel -> soft red
+    sec.querySelectorAll('[class*="bg-amber-50"], [class*="border-dashed"]').forEach(el => {
+      Object.assign(el.style, { background: '#fff5f5', borderColor: '#fca5a5', borderRadius: '10px' });
+    });
+    sec.querySelectorAll('[class*="text-amber-7"]').forEach(el => el.style.color = RED);
+    sec.querySelectorAll('[class*="border-amber"]').forEach(el => el.style.borderColor = '#fca5a5');
+
+    // 3j. Error text
+    sec.querySelectorAll('[role="alert"], [class*="text-destructive"], [class*="text-red-8"]').forEach(el => el.style.color = RED);
   });
 
-  /* 8. Primary full-width buttons → big red */
-  root.querySelectorAll('button').forEach(btn => {
-    const cls = btn.className || '';
+  // 4. Dashboard white divs
+  root.querySelectorAll('div.bg-white').forEach(d => Object.assign(d.style, { background: '#fff', borderRadius: '12px' }));
 
-    /* Send OTP / Verify / Continue etc. — full-width slate-900 */
-    if (cls.includes('w-full') && cls.includes('bg-slate-900')) {
-      btn.style.cssText = [
-        'background:'+RED+'!important',
-        'color:#fff!important',
-        'border-radius:10px!important',
-        'padding:1rem!important',
-        'font-size:1rem!important',
-        'font-weight:800!important',
-        'border:none!important',
-        'width:100%!important',
-        'cursor:pointer!important',
-        'font-family:'+INTER,
-      ].join(';');
-      btn.onmouseenter = () => { if (!btn.disabled) btn.style.background = RED_DARK; };
-      btn.onmouseleave = () => { if (!btn.disabled) btn.style.background = RED; };
-    }
-
-    /* Block card red button */
-    if (cls.includes('bg-red-700')) {
-      btn.style.background = RED;
-      btn.style.fontWeight = '700';
-    }
-
-    /* Active toggle (Own / Alternate selected state) */
-    if (cls.includes('bg-slate-900') && cls.includes('border-slate-900') && !cls.includes('w-full')) {
-      btn.style.background = RED;
-      btn.style.borderColor = RED;
-      btn.style.borderRadius = '8px';
-    }
+  // 5. Block button (dashboard)
+  root.querySelectorAll('button[class*="bg-red-7"], a[class*="bg-red-7"]').forEach(el => {
+    Object.assign(el.style, { background: RED, fontWeight: '700', borderRadius: '8px' });
+    el.onmouseenter = () => el.style.background = RED_DARK;
+    el.onmouseleave = () => el.style.background = RED;
   });
 
-  /* 9. Inputs / selects / textareas */
-  root.querySelectorAll('input,select,textarea').forEach(el => {
-    el.style.cssText = [
-      'border:1.5px solid #e5e7eb!important',
-      'border-radius:10px!important',
-      'padding:.8rem 1rem!important',
-      'font-size:.95rem!important',
-      'background:#fff!important',
-      'color:#111827!important',
-      'font-family:'+INTER,
-    ].join(';');
-    el.onfocus = () => {
-      el.style.borderColor = RED;
-      el.style.boxShadow = '0 0 0 3px rgba(214,58,42,.12)';
-      el.style.outline = 'none';
-    };
-    el.onblur = () => {
-      el.style.borderColor = '#e5e7eb';
-      el.style.boxShadow = 'none';
-    };
+  // 6. Active block border
+  root.querySelectorAll('[class*="border-red-3"]').forEach(el => { el.style.borderColor=RED; el.style.borderWidth='2px'; });
+
+  // 7. Dark panels
+  root.querySelectorAll('[class*="bg-slate-9"][class*="text-white"]').forEach(el => {
+    Object.assign(el.style, { background: '#1f2937', borderRadius: '10px' });
   });
 
-  /* 10. Headings */
-  root.querySelectorAll('h2').forEach(h => {
-    h.style.fontWeight = '800';
-    h.style.letterSpacing = '-.02em';
-    h.style.fontFamily = INTER;
-  });
-
-  /* 11. Amber warning panel → soft red */
-  root.querySelectorAll('[class*="bg-amber-50"]').forEach(el => el.style.background = '#fff5f5');
-  root.querySelectorAll('[class*="text-amber-700"]').forEach(el => el.style.color = RED);
-  root.querySelectorAll('[class*="border-amber-200"]').forEach(el => el.style.borderColor = '#fca5a5');
-
-  /* 12. Active block border */
-  root.querySelectorAll('[class*="border-red-300"]').forEach(el => {
-    el.style.borderColor = RED;
-    el.style.borderWidth = '2px';
-  });
+  // 8. Success toast
+  root.querySelectorAll('[class*="bg-emerald-7"]').forEach(el => Object.assign(el.style, { background: '#059669', borderRadius: '8px' }));
 }
+
 
 /* Run immediately and re-run on every React re-render */
 const observer = new MutationObserver(() => styleApp());
