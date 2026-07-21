@@ -1109,6 +1109,42 @@ function styleApp() {
     sec.querySelectorAll('[role="alert"],[class*="text-destructive"],[class*="text-red-8"]').forEach(el=>el.style.color=RED);
   });
 
+  // ── Log out / Exit admin proxy ──
+  // The real buttons live inside the app's own <header>, which we hide (it duplicates
+  // our nav bar). Rather than moving React's real DOM nodes (risky — breaks React's
+  // reconciliation on next re-render), we mirror a visible proxy button that forwards
+  // its click to the original hidden button.
+  root.querySelectorAll('.__bmc_logout_bar').forEach(e=>e.remove());
+  const hdr2=root.querySelector('header');
+  if(hdr2){
+    const origBtn=Array.from(hdr2.querySelectorAll('button')).find(b=>{
+      const t=(b.textContent||'').trim();
+      return t==='Log out'||t==='Exit admin';
+    });
+    if(origBtn){
+      const label=origBtn.textContent.trim();
+      const phoneSpan=hdr2.querySelector('span.font-mono');
+      const activeContainer=pageContainers[0];
+      if(activeContainer){
+        const bar=document.createElement('div');
+        bar.className='__bmc_logout_bar';
+        Object.assign(bar.style,{display:'flex',alignItems:'center',justifyContent:'flex-end',gap:'.75rem',marginBottom:'1rem',paddingBottom:'.75rem',borderBottom:'1px solid '+borderColor,fontSize:'.82rem'});
+        if(phoneSpan&&label==='Log out'){
+          const ph=document.createElement('span');
+          ph.textContent=phoneSpan.textContent;
+          Object.assign(ph.style,{fontFamily:MONO,color:fg2Color,fontSize:'.8rem'});
+          bar.appendChild(ph);
+        }
+        const proxyBtn=document.createElement('button');
+        proxyBtn.textContent=label;
+        Object.assign(proxyBtn.style,{color:RED,background:'none',border:'none',cursor:'pointer',fontWeight:'700',fontSize:'.85rem',textDecoration:'underline',padding:'0'});
+        proxyBtn.onclick=()=>origBtn.click();
+        bar.appendChild(proxyBtn);
+        activeContainer.insertBefore(bar,activeContainer.firstChild);
+      }
+    }
+  }
+
   // Dashboard card list items (flex justify-between, border-b)
   root.querySelectorAll('[class*="border-b"][class*="flex"][class*="justify-between"]').forEach(row=>{
     Object.assign(row.style,{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'.75rem 0',borderBottom:'1px solid '+borderColor,gap:'.5rem'});
