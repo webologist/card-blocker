@@ -417,7 +417,8 @@ body{font-family:'Inter','Noto Sans Devanagari','Noto Sans Gujarati',system-ui,s
 #root .hover\:bg-slate-50:hover{background:var(--bg2)}
 #root .hover\:bg-slate-100:hover{background:var(--bg2)}
 #root .hover\:bg-slate-700:hover{background:#334155}
-#root .hover\:bg-slate-900:hover{background:var(--fg)}
+#root .bg-slate-900{background:#0f172a;color:#fff}
+#root .hover\:bg-slate-900:hover{background:#0f172a}
 #root .hover\:text-white:hover{color:#fff}
 /* responsive grid — matches Tailwind's sm:/md: breakpoints (640px/768px) */
 @media(min-width:640px){
@@ -1107,6 +1108,16 @@ function styleApp() {
     sec.querySelectorAll('[class*="bg-amber-50"],[class*="border-dashed"]').forEach(el=>Object.assign(el.style,{background:isDark?'rgba(214,58,42,.1)':'#fff5f5',borderColor:'#fca5a5',borderRadius:'10px'}));
     sec.querySelectorAll('[class*="text-amber-7"]').forEach(el=>el.style.color=RED);
     sec.querySelectorAll('[role="alert"],[class*="text-destructive"],[class*="text-red-8"]').forEach(el=>el.style.color=RED);
+  });
+
+  // "YES — Save (Pay ₹...)" confirmation button (card-save payment prompt)
+  root.querySelectorAll('button').forEach(btn=>{
+    const txt=(btn.textContent||'').trim();
+    if(txt.startsWith('YES')&&txt.includes('Save')){
+      Object.assign(btn.style,{background:RED,color:'#fff',border:'none',borderRadius:'8px',padding:'.5rem 1.1rem',fontWeight:'700',fontSize:'.875rem',cursor:'pointer'});
+      btn.onmouseenter=()=>btn.style.background=RED_DARK;
+      btn.onmouseleave=()=>btn.style.background=RED;
+    }
   });
 
   // ── Log out / Exit admin proxy ──
