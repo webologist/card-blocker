@@ -940,13 +940,19 @@ function styleApp() {
     el.style.fontFamily=(el.className||'').includes('font-mono')||el.tagName==='PRE'||el.tagName==='CODE'?MONO:INTER;
   });
 
-  root.querySelectorAll('section').forEach(sec=>{
-    if(!(sec.className||'').includes('bg-white')) return;
-    const isDashboardView=!!(sec.querySelector('h2.text-2xl'));
-    Object.assign(sec.style,{background:cardBg,borderRadius:'20px',border:'none',boxShadow:'0 24px 64px rgba(0,0,0,.25)',maxWidth:'100%',margin:'0',padding:isDashboardView?'1.5rem':'2rem',maxHeight:isDashboardView?'82vh':'none',overflowY:isDashboardView?'auto':'visible'});
+  // Page containers: section.bg-white (login/otp/register) OR bare main>div with an h2 (dashboard/admin)
+  const pageContainers=[
+    ...root.querySelectorAll('main>section'),
+    ...Array.from(root.querySelectorAll('main>div')).filter(d=>d.querySelector('h2')),
+  ];
+
+  pageContainers.forEach(sec=>{
+    const isDashboardView=!!(sec.querySelector('h2.text-2xl'))&&!sec.querySelector('h2')?.textContent?.includes('Admin');
+    const isAdminView=!!(sec.querySelector('h2')?.textContent?.includes('Admin console'));
+    Object.assign(sec.style,{background:cardBg,borderRadius:'20px',border:'none',boxShadow:'0 24px 64px rgba(0,0,0,.25)',maxWidth:'100%',margin:'0',padding:(isDashboardView||isAdminView)?'1.5rem':'2rem',maxHeight:(isDashboardView||isAdminView)?'82vh':'none',overflowY:(isDashboardView||isAdminView)?'auto':'visible'});
 
     const h2=sec.querySelector('h2');
-    if(h2){
+    if(h2&&!isAdminView){
       sec.querySelectorAll('.__fhb').forEach(e=>e.remove());
       const step=h2.textContent.trim();
       let txt='📱 Authenticate / Block';
@@ -963,6 +969,8 @@ function styleApp() {
       Object.assign(badge.style,{color:RED,fontSize:'.72rem',fontWeight:'700',letterSpacing:'.08em',textTransform:'uppercase',marginBottom:'.4rem'});
       h2.parentNode.insertBefore(badge,h2);
       if(h2.textContent.trim()==='Log in / Register') h2.textContent='Authenticate / Block';
+    } else if(h2&&isAdminView){
+      sec.querySelectorAll('.__fhb').forEach(e=>e.remove());
     }
 
     sec.querySelectorAll('h2').forEach(h=>{
