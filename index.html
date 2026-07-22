@@ -251,7 +251,7 @@ body{font-family:'Inter','Noto Sans Devanagari','Noto Sans Gujarati',system-ui,s
 /* ── CARD TOOL (CTA SECTION) ── */
 .tool-section{background:linear-gradient(135deg,var(--red) 0%,#b72e1e 100%);padding:5rem 1.5rem;position:relative;overflow:hidden}
 .tool-section::before{content:'';position:absolute;top:0;right:0;bottom:0;left:0;background-image:radial-gradient(circle,rgba(255,255,255,.08) 1px,transparent 1px);background-size:36px 36px;pointer-events:none}
-.tool-inner{max-width:1200px;margin:0 auto;display:grid;grid-template-columns:1.1fr 1fr;gap:3rem;align-items:start;position:relative}
+.tool-inner{max-width:1200px;margin:0 auto;display:grid;grid-template-columns:1fr 2fr;gap:3rem;align-items:start;position:relative}
 @media(max-width:800px){.tool-inner{grid-template-columns:1fr}}
 .tool-left{color:#fff}
 .tool-eyebrow{display:inline-flex;align-items:center;gap:.4rem;background:rgba(255,255,255,.18);border-radius:99px;padding:.32rem .85rem;font-size:.72rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;margin-bottom:1.2rem;color:#fff;-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px)}
@@ -1306,7 +1306,8 @@ function _styleAppImpl() {
 
   const wrap = root.querySelector('div[class*="min-h-screen"]');
   if (wrap) Object.assign(wrap.style, {background:'transparent', minHeight:'unset'});
-  const hdr = root.querySelector('header'); if (hdr) hdr.style.display = 'none';
+  // Header is hidden via clip in the logout-bar block below (not display:none,
+  // so that origBtn.dispatchEvent() and origBtn.click() both fire correctly).
   const ftr = root.querySelector('footer'); if (ftr) ftr.style.display = 'none';
   const main = root.querySelector('main'); if (main) Object.assign(main.style, {background:'transparent', padding:'0', maxWidth:'100%'});
 
@@ -1330,7 +1331,6 @@ function _styleAppImpl() {
 
     const h2 = sec.querySelector('h2');
     if (h2 && !isAdminView) {
-      sec.querySelectorAll('.__fhb').forEach(e => e.remove());
       const step = h2.textContent.trim();
       let txt = '\uD83D\uDCF1 Authenticate / Block';
       if (step.includes('OTP') || step.includes('Enter')) txt = '\uD83D\uDD10 Verify your number';
@@ -1340,14 +1340,23 @@ function _styleAppImpl() {
       else if (step.includes('email') || step.includes('Email')) txt = '\uD83D\uDCE7 Almost done';
       else if (step.includes('Save') || step.includes('cards for')) txt = '\uD83D\uDD12 Secure your cards';
       else if (step.includes('Hello')) txt = '\u2705 Logged in';
-      const badge = document.createElement('div');
-      badge.className = '__fhb';
-      badge.textContent = txt;
-      Object.assign(badge.style, {color:RED, fontSize:'.72rem', fontWeight:'700', letterSpacing:'.08em', textTransform:'uppercase', marginBottom:'.4rem'});
-      if (h2.parentNode) h2.parentNode.insertBefore(badge, h2);
-      if (h2.textContent.trim() === 'Log in / Register') h2.textContent = 'Authenticate / Block';
+      // FIX: reuse existing badge rather than remove+insert every run.
+      // remove+insert was triggering the MutationObserver each cycle → infinite loop.
+      let badge = h2.parentNode ? h2.parentNode.querySelector('.__fhb') : null;
+      if (!badge) {
+        badge = document.createElement('div');
+        badge.className = '__fhb';
+        Object.assign(badge.style, {color:RED, fontSize:'.72rem', fontWeight:'700', letterSpacing:'.08em', textTransform:'uppercase', marginBottom:'.4rem'});
+        if (h2.parentNode) h2.parentNode.insertBefore(badge, h2);
+      }
+      // Only update text content — does NOT trigger childList MutationObserver
+      if (badge.textContent !== txt) badge.textContent = txt;
+      badge.style.color = RED; // keep colour in sync with theme changes
+      if (step === 'Log in / Register') h2.textContent = 'Authenticate / Block';
     } else if (h2 && isAdminView) {
-      sec.querySelectorAll('.__fhb').forEach(e => e.remove());
+      // Admin view — hide the badge without removing it (no DOM mutation)
+      const badge = h2.parentNode ? h2.parentNode.querySelector('.__fhb') : null;
+      if (badge) badge.style.display = 'none';
     }
 
     sec.querySelectorAll('h2').forEach(h => {
@@ -1464,33 +1473,63 @@ function _styleAppImpl() {
   });
 
   // Logout proxy bar
-  root.querySelectorAll('.__bmc_logout_bar').forEach(e => e.remove());
+  // FIX: create the bar ONCE and update it in place on subsequent runs.
+  // The old pattern (remove + insertBefore every run) fired 2 childList mutations
+  // per styleApp call → MutationObserver → styleApp → infinite loop every 80ms.
+  // That loop caused: logout button deleted mid-click, React re-renders fighting
+  // DOM writes, and error states re-evaluated on every iteration.
   const hdr2 = root.querySelector('header');
   if (hdr2) {
+    // Clip the React header out of view without display:none so .click() works
+    Object.assign(hdr2.style, {position:'absolute', width:'1px', height:'1px',
+      overflow:'hidden', opacity:'0', pointerEvents:'none',
+      clip:'rect(0 0 0 0)', whiteSpace:'nowrap'});
+
     const origBtn = Array.from(hdr2.querySelectorAll('button')).find(b => {
       const t = (b.textContent || '').trim();
       return t === 'Log out' || t === 'Exit admin';
     });
     if (origBtn) {
-      const label = origBtn.textContent.trim();
+      const label     = origBtn.textContent.trim();
       const phoneSpan = hdr2.querySelector('span.font-mono');
       const activeContainer = pageContainers[0];
       if (activeContainer) {
-        const bar = document.createElement('div');
-        bar.className = '__bmc_logout_bar';
-        Object.assign(bar.style, {display:'flex', alignItems:'center', justifyContent:'flex-end', gap:'.75rem', marginBottom:'1rem', paddingBottom:'.75rem', borderBottom:'1px solid '+borderColor, fontSize:'.82rem'});
-        if (phoneSpan && label === 'Log out') {
+        // Reuse existing bar — only insert if it doesn't exist yet (0 DOM mutations on repeat runs)
+        let bar = activeContainer.querySelector('.__bmc_logout_bar');
+        if (!bar) {
+          bar = document.createElement('div');
+          bar.className = '__bmc_logout_bar';
+          Object.assign(bar.style, {display:'flex', alignItems:'center', justifyContent:'flex-end',
+            gap:'.75rem', marginBottom:'1rem', paddingBottom:'.75rem',
+            borderBottom:'1px solid '+borderColor, fontSize:'.82rem'});
           const ph = document.createElement('span');
-          ph.textContent = phoneSpan.textContent;
+          ph.className = '__bmc_phone';
           Object.assign(ph.style, {fontFamily:MONO, color:fg2Color, fontSize:'.8rem'});
           bar.appendChild(ph);
+          const proxyBtn = document.createElement('button');
+          proxyBtn.className = '__bmc_proxy_btn';
+          Object.assign(proxyBtn.style, {color:RED, background:'none', border:'none',
+            cursor:'pointer', fontWeight:'700', fontSize:'.85rem',
+            textDecoration:'underline', padding:'0'});
+          bar.appendChild(proxyBtn);
+          activeContainer.insertBefore(bar, activeContainer.firstChild);
         }
-        const proxyBtn = document.createElement('button');
-        proxyBtn.textContent = label;
-        Object.assign(proxyBtn.style, {color:RED, background:'none', border:'none', cursor:'pointer', fontWeight:'700', fontSize:'.85rem', textDecoration:'underline', padding:'0'});
-        proxyBtn.onclick = () => origBtn.click();
-        bar.appendChild(proxyBtn);
-        activeContainer.insertBefore(bar, activeContainer.firstChild);
+        // Always refresh onclick → points to CURRENT origBtn after each React re-render.
+        // Use dispatchEvent so React's synthetic event system receives it reliably.
+        const proxyBtn = bar.querySelector('.__bmc_proxy_btn');
+        if (proxyBtn) {
+          proxyBtn.textContent = label;
+          proxyBtn.onclick = () =>
+            origBtn.dispatchEvent(new MouseEvent('click', {bubbles:true, cancelable:true, view:window}));
+        }
+        // Update phone display without DOM insertions (just textContent)
+        const ph = bar.querySelector('.__bmc_phone');
+        if (ph) {
+          const phoneText = (phoneSpan && label === 'Log out') ? phoneSpan.textContent : '';
+          if (ph.textContent !== phoneText) ph.textContent = phoneText;
+          ph.style.color = fg2Color;
+        }
+        bar.style.borderBottomColor = borderColor;
       }
     }
   }
