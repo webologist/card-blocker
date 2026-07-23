@@ -3,6 +3,8 @@
 //        fixed-position toast outside React DOM (#8), narrow OTP selector (#9),
 //        full /\D/g phone sanitisation + +91/0 prefix stripping (#10),
 //        early length guard (#13).
+// Update Aug 2026: dummy OTP mode (#14) — admin can switch between live Twilio
+//        and a fixed "1234" OTP for testing without incurring SMS charges.
 (function () {
   let lastPhone     = '';
   let _allowVerify  = false;
@@ -20,10 +22,21 @@
 
   const log = (...a) => { if (window.__BMC_DEBUG) console.log(...a); };
 
+  // ── DUMMY MODE HELPERS ───────────────────────────────────────────────────
+  // Reads the toggle stored by the admin console in cbp:otp_mode.
+  // Returns true when the admin has enabled dummy/test mode.
+  // Persisted across page reloads via window.storage (same as the rest of the app).
+  async function getDummyMode() {
+    try {
+      const result = await window.storage.get('cbp:otp_mode');
+      return result && result.value === 'dummy';
+    } catch {
+      return false;
+    }
+  }
+
   // ── FIXED-POSITION ERROR TOAST ───────────────────────────────────────────
   // Lives on document.body, OUTSIDE #root, so React re-renders can never remove it.
-  // Previous approach appended inside React's managed DOM — reconciliation silently
-  // discarded it whenever React re-rendered even unrelated parts of the form.
   function showError(message) {
     clearTimeout(_toastTimer);
 
@@ -52,7 +65,6 @@
       document.body.appendChild(toast);
     }
 
-    // Update only the text node — preserve the dismiss button child
     const dismissBtn = toast.querySelector('button');
     Array.from(toast.childNodes).forEach(n => {
       if (n !== dismissBtn) toast.removeChild(n);
@@ -60,7 +72,6 @@
     toast.insertBefore(document.createTextNode(message), dismissBtn);
     toast.style.display = 'block';
 
-    // Auto-dismiss after 10 s so it doesn't linger indefinitely
     _toastTimer = setTimeout(hideError, 10000);
   }
 
@@ -70,9 +81,32 @@
     if (t) t.style.display = 'none';
   }
 
+  // ── DUMMY MODE BANNER ────────────────────────────────────────────────────
+  // Shows / hides a sticky banner so developers always know when test mode is on.
+  function showDummyBanner(visible) {
+    let banner = document.getElementById('bmc-dummy-banner');
+    if (!banner) {
+      banner = document.createElement('div');
+      banner.id = 'bmc-dummy-banner';
+      banner.style.cssText =
+        'position:fixed;top:0;left:0;right:0;z-index:10000;' +
+        'background:#7c3aed;color:#fff;font-size:.75rem;font-weight:600;' +
+        'text-align:center;padding:.35rem 1rem;letter-spacing:.04em;';
+      banner.textContent = '🧪 DUMMY OTP MODE — any OTP request will succeed with code 1234. Twilio is NOT called.';
+      document.body.prepend(banner);
+    }
+    banner.style.display = visible ? 'block' : 'none';
+  }
+
+  // Refresh the banner state on load and whenever storage changes
+  async function refreshDummyBanner() {
+    showDummyBanner(await getDummyMode());
+  }
+  window.addEventListener('load', refreshDummyBanner);
+  // Re-check when the admin saves the setting (they toggle in the same tab)
+  window.addEventListener('focus', refreshDummyBanner);
+
   // ── FETCH WITH ABORT TIMEOUT ─────────────────────────────────────────────
-  // Without a timeout, a hung network leaves the button disabled forever.
-  // AbortController cancels the request after `ms` milliseconds.
   async function fetchWithTimeout(url, opts, ms = 30000) {
     const ctrl  = new AbortController();
     const timer = setTimeout(() => ctrl.abort(), ms);
@@ -82,27 +116,21 @@
       return res;
     } catch (err) {
       clearTimeout(timer);
-      throw err;  // preserves err.name === 'AbortError' for caller
+      throw err;
     }
   }
 
   // ── SAFE JSON PARSE ──────────────────────────────────────────────────────
-  // res.json() throws on malformed responses (HTML error pages, truncated JSON).
-  // Previously this fell into the catch block and showed "No connection" — wrong.
   async function safeJson(res) {
     try   { return await res.json(); }
-    catch { return null; }             // null signals "bad JSON" to caller
+    catch { return null; }
   }
 
   // ── PHONE SANITISATION ───────────────────────────────────────────────────
-  // Old: only stripped [\s\-] — "+91-98765-43210" or "(0)9876543210" would fail.
-  // New: strips ALL non-digits, then normalises +91 (12 digits) and 0 prefixes.
   function sanitisePhone(raw) {
-    if (!raw || raw.length > 20) return '';  // length guard — reject absurd input early
+    if (!raw || raw.length > 20) return '';
     let d = String(raw).replace(/\D/g, '');
-    // +91XXXXXXXXXX → XXXXXXXXXX
     if (d.length === 12 && d.startsWith('91')) d = d.slice(2);
-    // 0XXXXXXXXXX → XXXXXXXXXX
     if (d.startsWith('0') && d.length >= 11) d = d.slice(1);
     return d;
   }
@@ -131,11 +159,13 @@
       const origLabel = btn.textContent;
       btn.textContent = 'Sending\u2026';
 
+      const dummyMode = await getDummyMode();
+
       try {
         const res = await fetchWithTimeout('/api/send-otp', {
           method:  'POST',
           headers: { 'Content-Type': 'application/json' },
-          body:    JSON.stringify({ phone: lastPhone }),
+          body:    JSON.stringify({ phone: lastPhone, dummyMode }),
         });
 
         if (res.status === 429) {
@@ -155,8 +185,15 @@
 
         if (data.token) {
           _pendingToken   = data.token;
-          log('[OTP] SMS sent');
-          btn.textContent = 'OTP sent \u2713';
+          log('[OTP] SMS sent, dummy=', dummyMode);
+
+          if (dummyMode) {
+            btn.textContent = 'OTP sent ✓ (use 1234)';
+            showError('🧪 Dummy mode — enter 1234 as the OTP.');
+          } else {
+            btn.textContent = 'OTP sent \u2713';
+          }
+
           // Re-enable after 30 s so user can resend if SMS hasn't arrived
           setTimeout(() => { btn.textContent = 'Resend OTP'; btn.disabled = false; }, 30000);
         } else {
@@ -180,15 +217,11 @@
       e.stopImmediatePropagation();
       e.preventDefault();
 
-      // Preference order: maxlength+type → maxlength only → inputmode=numeric.
-      // Removed the previous querySelectorAll('input') fallback — too broad,
-      // would scan the entire page and risk grabbing card-number / name inputs.
       const otpInput =
         document.querySelector('input[maxlength="6"][type="tel"]')   ||
         document.querySelector('input[maxlength="6"]')               ||
         document.querySelector('input[inputmode="numeric"][maxlength]');
 
-      // Strip non-digits before validating (handles autocomplete that inserts spaces)
       const entered = (otpInput?.value || '').replace(/\D/g, '');
 
       if (!/^\d{4,6}$/.test(entered)) {
@@ -211,11 +244,13 @@
       const origLabel = btn.textContent;
       btn.textContent = 'Verifying\u2026';
 
+      const dummyMode = await getDummyMode();
+
       try {
         const res = await fetchWithTimeout('/api/verify-otp', {
           method:  'POST',
           headers: { 'Content-Type': 'application/json' },
-          body:    JSON.stringify({ phone: lastPhone, otp: entered, token: _pendingToken }),
+          body:    JSON.stringify({ phone: lastPhone, otp: entered, token: _pendingToken, dummyMode }),
         });
 
         if (res.status === 429) {
