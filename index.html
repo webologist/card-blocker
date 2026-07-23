@@ -1571,15 +1571,15 @@ function _styleAppImpl() {
   root.querySelectorAll('[class*="bg-emerald-7"]').forEach(el => Object.assign(el.style, {background:'#059669', borderRadius:'8px', color:'#fff'}));
 }
 
-/* M5 — single debounced MutationObserver, no double-setTimeout */
+/* M5 — single debounced MutationObserver, no double-setTimeout */h
 let _styleTimer = null;
 const observer = new MutationObserver(() => {
-  clearTimeout(_styleTimer);
+  clearTimeout(_styleTimer);h
   _styleTimer = setTimeout(styleApp, 80);
 });
 try {
   const rootEl = document.getElementById('root');
-  if (rootEl) observer.observe(rootEl, {childList: true, subtree: true});
+  if (rootEl) observer.observe(rootEl, {childList: true, subtree: true});h
 } catch (err) {
   if (window.__BMC_DEBUG) console.error('[Observer]', err);
 }
@@ -1591,8 +1591,10 @@ setTimeout(() => {
   // root.firstChild is null only if React never ran — fallback still visible
   if (fb && fb.style.display !== 'none' && root && !root.firstChild) {
     fb.innerHTML = '<p style="color:#fecaca;font-size:.88rem">Could not load the form. <a href="javascript:location.reload()" style="color:#fff;font-weight:700;text-decoration:underline">Refresh the page</a> or <a href="mailto:support@blockmycard.in" style="color:#fff;font-weight:700;text-decoration:underline">contact support</a>.</p>';
+  <script src="./admin-otp-toggle.js"></script>h
   }
 }, 5000);
 </script>
+<script src="./admin-otp-toggle.js"></script>
 </body>
 </html>
