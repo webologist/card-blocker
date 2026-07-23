@@ -1,10 +1,4 @@
-// otp-bridge.js — edge-case hardened (QA review July 2026)
-// Fixes: AbortController timeout (#6), safeJson wrapper (#7),
-//        fixed-position toast outside React DOM (#8), narrow OTP selector (#9),
-//        full /\D/g phone sanitisation + +91/0 prefix stripping (#10),
-//        early length guard (#13).
-// Update Aug 2026: dummy OTP mode (#14) — admin can switch between live Twilio
-//        and a fixed "1234" OTP for testing without incurring SMS charges.
+// otp-bridge.js — with dummy OTP mode support (toggle via admin console)
 (function () {
   let lastPhone     = '';
   let _allowVerify  = false;
@@ -12,7 +6,6 @@
   let _otpValue     = null;
   let _toastTimer   = null;
 
-  // C2 — non-enumerable OTP property, hidden from Object.keys / JSON.stringify
   Object.defineProperty(window, '__bmc_otp', {
     get()  { return _otpValue; },
     set(v) { _otpValue = v; },
@@ -22,56 +15,48 @@
 
   const log = (...a) => { if (window.__BMC_DEBUG) console.log(...a); };
 
-  // ── DUMMY MODE HELPERS ───────────────────────────────────────────────────
-  // Reads the toggle stored by the admin console in cbp:otp_mode.
-  // Returns true when the admin has enabled dummy/test mode.
-  // Persisted across page reloads via window.storage (same as the rest of the app).
   async function getDummyMode() {
     try {
-      const result = await window.storage.get('cbp:otp_mode');
-      return result && result.value === 'dummy';
-    } catch {
-      return false;
-    }
+      const r = await window.storage.get('cbp:otp_mode');
+      return r && r.value === 'dummy';
+    } catch { return false; }
   }
 
-  // ── FIXED-POSITION ERROR TOAST ───────────────────────────────────────────
-  // Lives on document.body, OUTSIDE #root, so React re-renders can never remove it.
+  function showDummyBanner(visible) {
+    let b = document.getElementById('bmc-dummy-banner');
+    if (!b) {
+      b = document.createElement('div');
+      b.id = 'bmc-dummy-banner';
+      b.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:10000;background:#7c3aed;color:#fff;font-size:.75rem;font-weight:600;text-align:center;padding:.35rem 1rem;letter-spacing:.04em;';
+      b.textContent = '\u{1F9EA} DUMMY OTP MODE \u2014 any OTP request succeeds with code 1234. Twilio is NOT called.';
+      document.body.prepend(b);
+    }
+    b.style.display = visible ? 'block' : 'none';
+  }
+
+  async function refreshDummyBanner() { showDummyBanner(await getDummyMode()); }
+  window.addEventListener('load', refreshDummyBanner);
+  window.addEventListener('focus', refreshDummyBanner);
+
   function showError(message) {
     clearTimeout(_toastTimer);
-
     let toast = document.getElementById('bmc-otp-toast');
     if (!toast) {
       toast = document.createElement('div');
       toast.id = 'bmc-otp-toast';
       toast.setAttribute('role', 'alert');
-      toast.setAttribute('aria-live', 'assertive');
-      toast.setAttribute('aria-atomic', 'true');
-      toast.style.cssText =
-        'position:fixed;bottom:1.5rem;left:50%;transform:translateX(-50%);' +
-        'z-index:9999;width:min(420px,calc(100vw - 2rem));' +
-        'background:#fef2f2;border:1.5px solid #fecaca;border-radius:10px;' +
-        'padding:.75rem 2.75rem .75rem 1rem;font-size:.875rem;color:#b91c1c;' +
-        'box-shadow:0 8px 24px rgba(0,0,0,.2);line-height:1.5;word-break:break-word;';
-
+      toast.style.cssText = 'position:fixed;bottom:1.5rem;left:50%;transform:translateX(-50%);z-index:9999;width:min(420px,calc(100vw - 2rem));background:#fef2f2;border:1.5px solid #fecaca;border-radius:10px;padding:.75rem 2.75rem .75rem 1rem;font-size:.875rem;color:#b91c1c;box-shadow:0 8px 24px rgba(0,0,0,.2);line-height:1.5;word-break:break-word;';
       const dismiss = document.createElement('button');
       dismiss.textContent = '\u2715';
-      dismiss.setAttribute('aria-label', 'Dismiss');
-      dismiss.style.cssText =
-        'position:absolute;top:.5rem;right:.65rem;background:none;border:none;' +
-        'cursor:pointer;color:#b91c1c;font-size:.9rem;line-height:1;padding:.2rem;';
+      dismiss.style.cssText = 'position:absolute;top:.5rem;right:.65rem;background:none;border:none;cursor:pointer;color:#b91c1c;font-size:.9rem;';
       dismiss.onclick = hideError;
       toast.appendChild(dismiss);
       document.body.appendChild(toast);
     }
-
-    const dismissBtn = toast.querySelector('button');
-    Array.from(toast.childNodes).forEach(n => {
-      if (n !== dismissBtn) toast.removeChild(n);
-    });
-    toast.insertBefore(document.createTextNode(message), dismissBtn);
+    const btn = toast.querySelector('button');
+    Array.from(toast.childNodes).forEach(n => { if (n !== btn) toast.removeChild(n); });
+    toast.insertBefore(document.createTextNode(message), btn);
     toast.style.display = 'block';
-
     _toastTimer = setTimeout(hideError, 10000);
   }
 
@@ -81,52 +66,17 @@
     if (t) t.style.display = 'none';
   }
 
-  // ── DUMMY MODE BANNER ────────────────────────────────────────────────────
-  // Shows / hides a sticky banner so developers always know when test mode is on.
-  function showDummyBanner(visible) {
-    let banner = document.getElementById('bmc-dummy-banner');
-    if (!banner) {
-      banner = document.createElement('div');
-      banner.id = 'bmc-dummy-banner';
-      banner.style.cssText =
-        'position:fixed;top:0;left:0;right:0;z-index:10000;' +
-        'background:#7c3aed;color:#fff;font-size:.75rem;font-weight:600;' +
-        'text-align:center;padding:.35rem 1rem;letter-spacing:.04em;';
-      banner.textContent = '🧪 DUMMY OTP MODE — any OTP request will succeed with code 1234. Twilio is NOT called.';
-      document.body.prepend(banner);
-    }
-    banner.style.display = visible ? 'block' : 'none';
-  }
-
-  // Refresh the banner state on load and whenever storage changes
-  async function refreshDummyBanner() {
-    showDummyBanner(await getDummyMode());
-  }
-  window.addEventListener('load', refreshDummyBanner);
-  // Re-check when the admin saves the setting (they toggle in the same tab)
-  window.addEventListener('focus', refreshDummyBanner);
-
-  // ── FETCH WITH ABORT TIMEOUT ─────────────────────────────────────────────
   async function fetchWithTimeout(url, opts, ms = 30000) {
-    const ctrl  = new AbortController();
+    const ctrl = new AbortController();
     const timer = setTimeout(() => ctrl.abort(), ms);
-    try {
-      const res = await fetch(url, { ...opts, signal: ctrl.signal });
-      clearTimeout(timer);
-      return res;
-    } catch (err) {
-      clearTimeout(timer);
-      throw err;
-    }
+    try { const r = await fetch(url, { ...opts, signal: ctrl.signal }); clearTimeout(timer); return r; }
+    catch (e) { clearTimeout(timer); throw e; }
   }
 
-  // ── SAFE JSON PARSE ──────────────────────────────────────────────────────
   async function safeJson(res) {
-    try   { return await res.json(); }
-    catch { return null; }
+    try { return await res.json(); } catch { return null; }
   }
 
-  // ── PHONE SANITISATION ───────────────────────────────────────────────────
   function sanitisePhone(raw) {
     if (!raw || raw.length > 20) return '';
     let d = String(raw).replace(/\D/g, '');
@@ -136,155 +86,87 @@
   }
 
   document.addEventListener('click', async function (e) {
-    const btn  = e.target.closest('button');
+    const btn = e.target.closest('button');
     if (!btn) return;
     const text = (btn.textContent || '').trim();
 
-    // ── SEND OTP ────────────────────────────────────────────────────────────
     if (text === 'Send OTP' || text === 'Resend OTP') {
       const phoneInput = document.querySelector('input[type="tel"]');
-      const digits     = sanitisePhone(phoneInput?.value);
-
+      const digits = sanitisePhone(phoneInput?.value);
       if (!/^\d{10}$/.test(digits)) {
         showError('Enter your 10-digit mobile number (e.g.\u00a09876543210).');
         return;
       }
-
       hideError();
-      lastPhone     = '+91' + digits;
+      lastPhone = '+91' + digits;
       _pendingToken = null;
-      _otpValue     = null;
-
-      btn.disabled    = true;
+      _otpValue = null;
+      btn.disabled = true;
       const origLabel = btn.textContent;
       btn.textContent = 'Sending\u2026';
-
       const dummyMode = await getDummyMode();
-
       try {
         const res = await fetchWithTimeout('/api/send-otp', {
-          method:  'POST',
+          method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body:    JSON.stringify({ phone: lastPhone, dummyMode }),
+          body: JSON.stringify({ phone: lastPhone, dummyMode }),
         });
-
-        if (res.status === 429) {
-          showError('Too many requests. Please wait a minute and try again.');
-          btn.disabled = false; btn.textContent = origLabel; return;
-        }
-        if (!res.ok) {
-          showError(`Server error (${res.status}). Please try again.`);
-          btn.disabled = false; btn.textContent = origLabel; return;
-        }
-
+        if (res.status === 429) { showError('Too many requests. Please wait and try again.'); btn.disabled = false; btn.textContent = origLabel; return; }
+        if (!res.ok) { showError(`Server error (${res.status}). Please try again.`); btn.disabled = false; btn.textContent = origLabel; return; }
         const data = await safeJson(res);
-        if (!data) {
-          showError('Unexpected server response. Please try again.');
-          btn.disabled = false; btn.textContent = origLabel; return;
-        }
-
+        if (!data) { showError('Unexpected server response. Please try again.'); btn.disabled = false; btn.textContent = origLabel; return; }
         if (data.token) {
-          _pendingToken   = data.token;
-          log('[OTP] SMS sent, dummy=', dummyMode);
-
+          _pendingToken = data.token;
           if (dummyMode) {
-            btn.textContent = 'OTP sent ✓ (use 1234)';
-            showError('🧪 Dummy mode — enter 1234 as the OTP.');
+            btn.textContent = 'OTP sent \u2713 (use 1234)';
+            showError('\u{1F9EA} Dummy mode \u2014 enter 1234 as the OTP.');
           } else {
             btn.textContent = 'OTP sent \u2713';
           }
-
-          // Re-enable after 30 s so user can resend if SMS hasn't arrived
           setTimeout(() => { btn.textContent = 'Resend OTP'; btn.disabled = false; }, 30000);
         } else {
           showError(data.error || 'Failed to send OTP. Please try again.');
           btn.disabled = false; btn.textContent = origLabel;
         }
-
       } catch (err) {
-        log('[OTP] Send error:', err);
-        showError(err.name === 'AbortError'
-          ? 'Request timed out. Check your connection and try again.'
-          : 'No connection. Check your signal and try again.');
+        showError(err.name === 'AbortError' ? 'Request timed out.' : 'No connection. Check your signal and try again.');
         btn.disabled = false; btn.textContent = origLabel;
       }
     }
 
-    // ── VERIFY OTP ──────────────────────────────────────────────────────────
     if (text === 'Verify OTP') {
       if (_allowVerify) { _allowVerify = false; return; }
-
       e.stopImmediatePropagation();
       e.preventDefault();
-
-      const otpInput =
-        document.querySelector('input[maxlength="6"][type="tel"]')   ||
-        document.querySelector('input[maxlength="6"]')               ||
-        document.querySelector('input[inputmode="numeric"][maxlength]');
-
+      const otpInput = document.querySelector('input[maxlength="6"][type="tel"]') || document.querySelector('input[maxlength="6"]') || document.querySelector('input[inputmode="numeric"][maxlength]');
       const entered = (otpInput?.value || '').replace(/\D/g, '');
-
-      if (!/^\d{4,6}$/.test(entered)) {
-        showError('Enter the 6-digit OTP sent to your phone.');
-        return;
-      }
-
-      if (!lastPhone) {
-        const d = sanitisePhone(document.querySelector('input[type="tel"]')?.value);
-        if (/^\d{10}$/.test(d)) lastPhone = '+91' + d;
-      }
-
-      if (!_pendingToken) {
-        showError('Session expired \u2014 click Send OTP again.');
-        return;
-      }
-
+      if (!/^\d{4,6}$/.test(entered)) { showError('Enter the 6-digit OTP sent to your phone.'); return; }
+      if (!lastPhone) { const d = sanitisePhone(document.querySelector('input[type="tel"]')?.value); if (/^\d{10}$/.test(d)) lastPhone = '+91' + d; }
+      if (!_pendingToken) { showError('Session expired \u2014 click Send OTP again.'); return; }
       hideError();
-      btn.disabled    = true;
+      btn.disabled = true;
       const origLabel = btn.textContent;
       btn.textContent = 'Verifying\u2026';
-
       const dummyMode = await getDummyMode();
-
       try {
         const res = await fetchWithTimeout('/api/verify-otp', {
-          method:  'POST',
+          method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body:    JSON.stringify({ phone: lastPhone, otp: entered, token: _pendingToken, dummyMode }),
+          body: JSON.stringify({ phone: lastPhone, otp: entered, token: _pendingToken, dummyMode }),
         });
-
-        if (res.status === 429) {
-          showError('Too many attempts. Wait a moment before trying again.');
-          btn.disabled = false; btn.textContent = origLabel; return;
-        }
-        if (!res.ok) {
-          showError(`Server error (${res.status}). Please try again.`);
-          btn.disabled = false; btn.textContent = origLabel; return;
-        }
-
+        if (res.status === 429) { showError('Too many attempts.'); btn.disabled = false; btn.textContent = origLabel; return; }
+        if (!res.ok) { showError(`Server error (${res.status}).`); btn.disabled = false; btn.textContent = origLabel; return; }
         const data = await safeJson(res);
-        if (!data) {
-          showError('Unexpected server response. Please try again.');
-          btn.disabled = false; btn.textContent = origLabel; return;
-        }
-
+        if (!data) { showError('Unexpected server response.'); btn.disabled = false; btn.textContent = origLabel; return; }
         if (data.success) {
-          _pendingToken   = null;
-          _otpValue       = entered;
-          _allowVerify    = true;
-          btn.disabled    = false;
-          btn.textContent = origLabel;
-          btn.click();          // re-trigger: React handler runs unblocked
+          _pendingToken = null; _otpValue = entered; _allowVerify = true;
+          btn.disabled = false; btn.textContent = origLabel; btn.click();
         } else {
           showError(data.error || 'Incorrect OTP. Please try again.');
           btn.disabled = false; btn.textContent = origLabel;
         }
-
       } catch (err) {
-        log('[OTP] Verify error:', err);
-        showError(err.name === 'AbortError'
-          ? 'Request timed out. Check your connection and try again.'
-          : 'Verification failed. Check your connection and try again.');
+        showError(err.name === 'AbortError' ? 'Request timed out.' : 'Verification failed.');
         btn.disabled = false; btn.textContent = origLabel;
       }
     }
