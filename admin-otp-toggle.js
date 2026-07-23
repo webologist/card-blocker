@@ -1,119 +1,154 @@
 // admin-otp-toggle.js
-// Injects an "OTP Mode" tab into the admin console so you can switch between
-// live Twilio SMS and dummy OTP "1234" without redeploying.
+// Injects an OTP Mode tab into the admin console.
+// Sets window.__bmc_dummy_mode (read synchronously by otp-bridge.js).
 (function () {
-  const STORAGE_KEY = 'cbp:otp_mode';
+  var STORAGE_KEY = 'cbp:otp_mode';
 
-  async function getMode() {
-    try { const r = await window.storage.get(STORAGE_KEY); return r ? r.value : 'live'; }
-    catch { return 'live'; }
+  function getMode() {
+    return window.storage.get(STORAGE_KEY)
+      .then(function(r){ return r ? r.value : 'live'; })
+      .catch(function(){ return 'live'; });
   }
 
-  async function setMode(mode) {
-    try { await window.storage.set(STORAGE_KEY, mode); } catch {}
-    window.dispatchEvent(new Event('focus'));
+  function setMode(mode) {
+    window.__bmc_dummy_mode = (mode === 'dummy');
+    return window.storage.set(STORAGE_KEY, mode).catch(function(){});
   }
 
-  async function buildPanel() {
-    const current = await getMode();
-    const isDummy = current === 'dummy';
-    const panel = document.createElement('div');
-    panel.id = 'bmc-otp-mode-panel';
-    panel.innerHTML = `
-      <div style="background:#fff;border:1px solid #e2e8f0;border-radius:.5rem;padding:1.25rem;max-width:480px;">
-        <h3 style="font-weight:700;font-size:1rem;margin:0 0 .25rem">OTP Mode</h3>
-        <p style="font-size:.8125rem;color:#64748b;margin:0 0 1rem">
-          Switch between <strong>Live Twilio</strong> (real SMS) and
-          <strong>Dummy mode</strong> where the OTP is always
-          <code style="background:#f1f5f9;padding:.1rem .35rem;border-radius:.25rem;font-family:monospace">1234</code>
-          and no SMS is sent.
-        </p>
-        <div style="display:flex;gap:.5rem;margin-bottom:1rem">
-          <button data-mode="live" style="flex:1;border-radius:.375rem;padding:.6rem;font-size:.875rem;font-weight:600;cursor:pointer;
-            ${!isDummy ? 'background:#0f172a;color:#fff;border:1.5px solid #0f172a' : 'background:#fff;color:#475569;border:1.5px solid #cbd5e1'}">
-            \u{1F4E1} Live Twilio
-          </button>
-          <button data-mode="dummy" style="flex:1;border-radius:.375rem;padding:.6rem;font-size:.875rem;font-weight:600;cursor:pointer;
-            ${isDummy ? 'background:#7c3aed;color:#fff;border:1.5px solid #7c3aed' : 'background:#fff;color:#475569;border:1.5px solid #cbd5e1'}">
-            \u{1F9EA} Dummy OTP (1234)
-          </button>
-        </div>
-        <div style="font-size:.8125rem;font-weight:600;padding:.5rem .75rem;border-radius:.375rem;
-          ${isDummy ? 'background:#f3e8ff;color:#7c3aed;border:1px solid #ddd6fe' : 'background:#f0fdf4;color:#15803d;border:1px solid #bbf7d0'}">
-          ${isDummy ? '\u{1F7E3} Dummy mode active \u2014 OTP is 1234, Twilio is NOT called' : '\u{1F7E2} Live mode active \u2014 OTPs sent via Twilio SMS'}
-        </div>
-        <p style="font-size:.75rem;color:#94a3b8;margin:.75rem 0 0">
-          You can also force dummy mode via the Vercel env var
-          <code style="background:#f1f5f9;padding:.1rem .35rem;border-radius:.25rem;font-family:monospace">OTP_MODE=dummy</code>
-          (takes precedence over this toggle).
-        </p>
-      </div>`;
-    panel.querySelectorAll('[data-mode]').forEach(btn => {
-      btn.addEventListener('click', async () => {
-        await setMode(btn.dataset.mode);
-        const host = panel.parentNode;
-        panel.remove();
-        if (host) host.appendChild(await buildPanel());
-      });
+  // Keep window.__bmc_dummy_mode in sync - otp-bridge.js reads this synchronously
+  function syncGlobal() {
+    getMode().then(function(m) { window.__bmc_dummy_mode = (m === 'dummy'); });
+  }
+  syncGlobal();
+  setInterval(syncGlobal, 2000);
+
+  function buildPanel() {
+    return getMode().then(function(current) {
+      var isDummy = current === 'dummy';
+      var panel = document.createElement('div');
+      panel.id = 'bmc-otp-mode-panel';
+      panel.style.cssText = 'padding:1rem 0;';
+      var card = document.createElement('div');
+      card.style.cssText = 'background:#fff;border:1px solid #e2e8f0;border-radius:.5rem;padding:1.25rem;max-width:500px;';
+
+      var h = document.createElement('h3');
+      h.textContent = 'OTP Mode';
+      h.style.cssText = 'font-weight:700;font-size:1rem;margin:0 0 .25rem;color:#0f172a;';
+      card.appendChild(h);
+
+      var desc = document.createElement('p');
+      desc.style.cssText = 'font-size:.8125rem;color:#64748b;margin:0 0 1rem;line-height:1.5;';
+      desc.innerHTML = 'Switch between <strong>Live Twilio</strong> (real SMS) and <strong>Dummy mode</strong> where the OTP is always <code style="background:#f1f5f9;padding:.1rem .35rem;border-radius:.25rem;font-family:monospace">1234</code> and no SMS is sent.';
+      card.appendChild(desc);
+
+      var btnRow = document.createElement('div');
+      btnRow.style.cssText = 'display:flex;gap:.5rem;margin-bottom:1rem;';
+
+      var liveBtn = document.createElement('button');
+      liveBtn.textContent = 'Live Twilio';
+      liveBtn.style.cssText = 'flex:1;border-radius:.375rem;padding:.6rem;font-size:.875rem;font-weight:600;cursor:pointer;' +
+        (!isDummy ? 'background:#0f172a;color:#fff;border:1.5px solid #0f172a;' : 'background:#fff;color:#475569;border:1.5px solid #cbd5e1;');
+
+      var dummyBtn = document.createElement('button');
+      dummyBtn.textContent = 'Dummy OTP (1234)';
+      dummyBtn.style.cssText = 'flex:1;border-radius:.375rem;padding:.6rem;font-size:.875rem;font-weight:600;cursor:pointer;' +
+        (isDummy ? 'background:#7c3aed;color:#fff;border:1.5px solid #7c3aed;' : 'background:#fff;color:#475569;border:1.5px solid #cbd5e1;');
+
+      liveBtn.onclick = function() {
+        setMode('live').then(function() {
+          var host = panel.parentNode; panel.remove();
+          if (host) buildPanel().then(function(p){ host.appendChild(p); });
+        });
+      };
+      dummyBtn.onclick = function() {
+        setMode('dummy').then(function() {
+          var host = panel.parentNode; panel.remove();
+          if (host) buildPanel().then(function(p){ host.appendChild(p); });
+        });
+      };
+
+      btnRow.appendChild(liveBtn);
+      btnRow.appendChild(dummyBtn);
+      card.appendChild(btnRow);
+
+      var status = document.createElement('div');
+      status.style.cssText = 'font-size:.8125rem;font-weight:600;padding:.5rem .75rem;border-radius:.375rem;' +
+        (isDummy ? 'background:#f3e8ff;color:#7c3aed;border:1px solid #ddd6fe;' : 'background:#f0fdf4;color:#15803d;border:1px solid #bbf7d0;');
+      status.textContent = isDummy
+        ? 'Dummy mode ON - OTP is 1234, Twilio NOT called'
+        : 'Live mode ON - OTPs sent via Twilio SMS';
+      card.appendChild(status);
+
+      var note = document.createElement('p');
+      note.style.cssText = 'font-size:.75rem;color:#94a3b8;margin:.75rem 0 0;';
+      note.innerHTML = 'Also controllable via the Vercel env var <code style="background:#f1f5f9;padding:.1rem .35rem;border-radius:.25rem;font-family:monospace">OTP_MODE=dummy</code>.';
+      card.appendChild(note);
+
+      panel.appendChild(card);
+      return panel;
     });
-    return panel;
   }
 
-  let injected = false;
+  var injected = false;
 
-  async function tryInject() {
+  function tryInject() {
     if (injected) return;
-    const allBtns = [...document.querySelectorAll('button')];
-    const banksTab = allBtns.find(b => (b.textContent || '').trim() === 'Banks');
+    var allBtns = document.querySelectorAll('button'), banksTab = null;
+    for (var i = 0; i < allBtns.length; i++) {
+      if (allBtns[i].textContent.trim() === 'Banks') { banksTab = allBtns[i]; break; }
+    }
     if (!banksTab) return;
-    const tabContainer = banksTab.parentNode;
+    var tabContainer = banksTab.parentNode;
     if (!tabContainer) return;
     if (tabContainer.querySelector('[data-bmc-otp-tab]')) { injected = true; return; }
-
     injected = true;
 
-    const otpTabBtn = document.createElement('button');
+    var adminSection = tabContainer.parentNode;
+    if (!adminSection) return;
+
+    var otpTabBtn = document.createElement('button');
     otpTabBtn.dataset.bmcOtpTab = '1';
     otpTabBtn.textContent = 'OTP Mode';
     otpTabBtn.style.cssText = 'padding:.375rem .75rem;border-radius:.375rem;font-size:.875rem;font-weight:600;background:#fff;border:1px solid #cbd5e1;color:#475569;cursor:pointer;';
     tabContainer.appendChild(otpTabBtn);
 
-    const adminSection = tabContainer.parentNode;
-    if (!adminSection) return;
-
-    let panelHost = document.getElementById('bmc-otp-panel-host');
+    var panelHost = document.getElementById('bmc-otp-panel-host');
     if (!panelHost) {
       panelHost = document.createElement('div');
       panelHost.id = 'bmc-otp-panel-host';
-      panelHost.style.cssText = 'display:none;margin-top:1rem';
+      panelHost.style.display = 'none';
       adminSection.appendChild(panelHost);
     }
 
-    otpTabBtn.addEventListener('click', async () => {
-      [...tabContainer.querySelectorAll('button')].forEach(b => {
-        if (b === otpTabBtn) { b.style.background = '#0f172a'; b.style.color = '#fff'; b.style.borderColor = '#0f172a'; }
-        else if (b.parentNode === tabContainer) { b.style.background = '#fff'; b.style.color = '#475569'; b.style.borderColor = '#cbd5e1'; }
-      });
-      [...adminSection.children].forEach(child => {
-        if (child !== tabContainer && child !== panelHost) { child.style.display = 'none'; child.dataset.bmcHidden = '1'; }
-      });
+    otpTabBtn.addEventListener('click', function() {
+      var tabBtns = tabContainer.querySelectorAll('button');
+      for (var i = 0; i < tabBtns.length; i++) {
+        if (tabBtns[i] === otpTabBtn) { tabBtns[i].style.background = '#0f172a'; tabBtns[i].style.color = '#fff'; tabBtns[i].style.borderColor = '#0f172a'; }
+        else if (tabBtns[i].parentNode === tabContainer) { tabBtns[i].style.background = '#fff'; tabBtns[i].style.color = '#475569'; tabBtns[i].style.borderColor = '#cbd5e1'; }
+      }
+      var ch = adminSection.children;
+      for (var j = 0; j < ch.length; j++) {
+        if (ch[j] !== tabContainer && ch[j] !== panelHost) { ch[j].style.display = 'none'; ch[j].dataset.bmcHidden = '1'; }
+      }
       panelHost.style.display = 'block';
       panelHost.innerHTML = '';
-      panelHost.appendChild(await buildPanel());
+      buildPanel().then(function(p) { panelHost.appendChild(p); });
     });
 
-    [...tabContainer.querySelectorAll('button')].forEach(b => {
-      if (b === otpTabBtn) return;
-      b.addEventListener('click', () => {
+    var existingBtns = tabContainer.querySelectorAll('button');
+    for (var k = 0; k < existingBtns.length; k++) {
+      if (existingBtns[k] === otpTabBtn) continue;
+      existingBtns[k].addEventListener('click', function() {
         panelHost.style.display = 'none';
-        [...adminSection.children].forEach(child => {
-          if (child.dataset.bmcHidden) { delete child.dataset.bmcHidden; child.style.display = ''; }
-        });
+        var ch = adminSection.children;
+        for (var m = 0; m < ch.length; m++) {
+          if (ch[m].dataset && ch[m].dataset.bmcHidden) { delete ch[m].dataset.bmcHidden; ch[m].style.display = ''; }
+        }
       }, true);
-    });
+    }
   }
 
-  setInterval(() => { injected = false; tryInject(); }, 1000);
+  setInterval(function() { injected = false; tryInject(); }, 1000);
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', tryInject);
   else tryInject();
 })();
