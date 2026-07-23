@@ -2,9 +2,13 @@
 (function () {
   var lastPhone = '', _allowVerify = false, _pendingToken = null, _otpValue = null, _toastTimer = null;
 
-  Object.defineProperty(window, '__bmc_otp', { get: function(){ return _otpValue; }, set: function(v){ _otpValue = v; }, enumerable: false, configurable: true });
+  Object.defineProperty(window, '__bmc_otp', {
+    get: function(){ return _otpValue; },
+    set: function(v){ _otpValue = v; },
+    enumerable: false, configurable: true
+  });
 
-  // Dynamically load admin-otp-toggle.js (avoids editing index.html)
+  // Load admin-otp-toggle.js dynamically
   function loadAdminToggle() {
     if (document.querySelector('script[src*="admin-otp-toggle"]')) return;
     var s = document.createElement('script'); s.src = '/admin-otp-toggle.js'; s.async = true;
@@ -13,13 +17,33 @@
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', loadAdminToggle);
   else loadAdminToggle();
 
-  // Surface hidden React logout/exit-admin button
-  // The React app puts its header inside #root with clip:rect(0,0,0,0) applied by page CSS
+  // KEY FIX: synchronous dummy mode check via window.__bmc_dummy_mode
+  // admin-otp-toggle.js sets this global when the toggle changes.
+  // Previous async storage.get() was silently catching errors and returning false.
+  function getDummyMode() {
+    return window.__bmc_dummy_mode === true;
+  }
+
+  function showDummyBanner(visible) {
+    var b = document.getElementById('bmc-dummy-banner');
+    if (!b) {
+      b = document.createElement('div'); b.id = 'bmc-dummy-banner';
+      b.style.cssText = 'position:fixed;top:28px;left:0;right:0;z-index:9997;background:#7c3aed;color:#fff;font-size:.72rem;font-weight:600;text-align:center;padding:.3rem 1rem;font-family:ui-sans-serif,system-ui,sans-serif;pointer-events:none;';
+      b.textContent = 'DUMMY OTP MODE - code is 1234, Twilio NOT called';
+      document.body.insertBefore(b, document.body.firstChild);
+    }
+    b.style.display = visible ? 'block' : 'none';
+  }
+  function refreshBanners() { showDummyBanner(getDummyMode()); }
+  setInterval(refreshBanners, 800);
+  window.addEventListener('focus', refreshBanners);
+
+  // Surface hidden React logout / exit-admin button
+  // The React header inside #root is CSS-clipped to 1x1px by the page
   function fixLogoutButton() {
     var rh = document.querySelector('#root header');
     if (!rh) return;
-    var btn = null;
-    var btns = rh.querySelectorAll('button');
+    var btns = rh.querySelectorAll('button'), btn = null;
     for (var i = 0; i < btns.length; i++) {
       var t = btns[i].textContent.trim();
       if (t === 'Log out' || t === 'Exit admin') { btn = btns[i]; break; }
@@ -52,26 +76,6 @@
   }
   setInterval(fixLogoutButton, 500);
 
-  // Dummy mode helpers
-  function getDummyMode() {
-    return window.storage.get('cbp:otp_mode').then(function(r){ return !!(r && r.value === 'dummy'); }).catch(function(){ return false; });
-  }
-  function showDummyBanner(visible) {
-    var b = document.getElementById('bmc-dummy-banner');
-    if (!b) {
-      b = document.createElement('div'); b.id = 'bmc-dummy-banner';
-      b.style.cssText = 'position:fixed;top:28px;left:0;right:0;z-index:9997;background:#7c3aed;color:#fff;font-size:.72rem;font-weight:600;text-align:center;padding:.3rem 1rem;font-family:ui-sans-serif,system-ui,sans-serif;';
-      b.textContent = 'DUMMY OTP MODE - code is 1234, Twilio NOT called';
-      document.body.insertBefore(b, document.body.firstChild);
-    }
-    b.style.display = visible ? 'block' : 'none';
-  }
-  function refreshBanners() { getDummyMode().then(showDummyBanner); }
-  setInterval(refreshBanners, 1500);
-  window.addEventListener('focus', refreshBanners);
-  refreshBanners();
-
-  // Error toast
   function showError(msg) {
     clearTimeout(_toastTimer);
     var t = document.getElementById('bmc-otp-toast');
@@ -91,10 +95,14 @@
   function hideError() { clearTimeout(_toastTimer); var t = document.getElementById('bmc-otp-toast'); if (t) t.style.display = 'none'; }
 
   function fetchWT(url, opts) {
-    var ctrl = new AbortController(); var timer = setTimeout(function(){ ctrl.abort(); }, 30000);
-    return fetch(url, Object.assign({}, opts, { signal: ctrl.signal })).then(function(r){ clearTimeout(timer); return r; }).catch(function(e){ clearTimeout(timer); throw e; });
+    var ctrl = new AbortController();
+    var timer = setTimeout(function(){ ctrl.abort(); }, 30000);
+    return fetch(url, Object.assign({}, opts, { signal: ctrl.signal }))
+      .then(function(r){ clearTimeout(timer); return r; })
+      .catch(function(e){ clearTimeout(timer); throw e; });
   }
   function safeJson(r) { return r.json().catch(function(){ return null; }); }
+
   function sanitisePhone(raw) {
     if (!raw || raw.length > 20) return '';
     var d = String(raw).replace(/[^0-9]/g, '');
@@ -112,8 +120,8 @@
       if (!/^[0-9]{10}$/.test(digits)) { showError('Enter your 10-digit mobile number.'); return; }
       hideError(); lastPhone = '+91' + digits; _pendingToken = null; _otpValue = null;
       btn.disabled = true; var orig = btn.textContent; btn.textContent = 'Sending...';
-      getDummyMode().then(function(dummy) {
-        return fetchWT('/api/send-otp', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ phone: lastPhone, dummyMode: dummy }) })
+      var dummy = getDummyMode();
+      fetchWT('/api/send-otp', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ phone: lastPhone, dummyMode: dummy }) })
         .then(function(res) {
           if (res.status === 429) { showError('Too many requests. Please wait.'); btn.disabled = false; btn.textContent = orig; return; }
           if (!res.ok) { showError('Server error. Please try again.'); btn.disabled = false; btn.textContent = orig; return; }
@@ -124,8 +132,8 @@
             if (dummy) showError('Dummy mode - enter 1234 as the OTP.');
             setTimeout(function(){ btn.textContent = 'Resend OTP'; btn.disabled = false; }, 30000);
           });
-        });
-      }).catch(function(err) { showError(err.name === 'AbortError' ? 'Request timed out.' : 'No connection.'); btn.disabled = false; btn.textContent = orig; });
+        })
+        .catch(function(err) { showError(err.name === 'AbortError' ? 'Request timed out.' : 'No connection.'); btn.disabled = false; btn.textContent = orig; });
     }
 
     if (text === 'Verify OTP') {
@@ -137,8 +145,8 @@
       if (!lastPhone) { var d2 = sanitisePhone((document.querySelector('input[type="tel"]') || {}).value); if (/^[0-9]{10}$/.test(d2)) lastPhone = '+91' + d2; }
       if (!_pendingToken) { showError('Session expired - click Send OTP again.'); return; }
       hideError(); btn.disabled = true; var orig2 = btn.textContent; btn.textContent = 'Verifying...';
-      getDummyMode().then(function(dummy) {
-        return fetchWT('/api/verify-otp', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ phone: lastPhone, otp: entered, token: _pendingToken, dummyMode: dummy }) })
+      var dummy2 = getDummyMode();
+      fetchWT('/api/verify-otp', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ phone: lastPhone, otp: entered, token: _pendingToken, dummyMode: dummy2 }) })
         .then(function(res) {
           if (res.status === 429) { showError('Too many attempts.'); btn.disabled = false; btn.textContent = orig2; return; }
           if (!res.ok) { showError('Server error.'); btn.disabled = false; btn.textContent = orig2; return; }
@@ -150,8 +158,8 @@
               showError((data && data.error) || 'Incorrect OTP.'); btn.disabled = false; btn.textContent = orig2;
             }
           });
-        });
-      }).catch(function(err) { showError(err.name === 'AbortError' ? 'Timed out.' : 'Verification failed.'); btn.disabled = false; btn.textContent = orig2; });
+        })
+        .catch(function(err) { showError(err.name === 'AbortError' ? 'Timed out.' : 'Verification failed.'); btn.disabled = false; btn.textContent = orig2; });
     }
   }, true);
 })();
