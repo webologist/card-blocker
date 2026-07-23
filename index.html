@@ -924,7 +924,7 @@ body{font-family:'Inter','Noto Sans Devanagari','Noto Sans Gujarati',system-ui,s
     </div>
     <div style="position:relative">
       <!-- H3 — fallback is a SIBLING of #root, never inside it — React needs a clean empty div -->
-      <div id="app-fallback" style="background:rgba(255,255,255,.12);border-radius:16px;padding:2rem;text-align:center;color:#fff;font-size:.9rem">
+      <div id="app-fallback" style="display:none;background:rgba(255,255,255,.12);border-radius:16px;padding:2rem;text-align:center;color:#fff;font-size:.9rem">
         <p style="opacity:.85">Loading registration form&#x2026;</p>
       </div>
       <div id="root"></div>
@@ -1456,6 +1456,7 @@ function _styleAppImpl() {
     sec.querySelectorAll('p').forEach(p => {
       const cls = p.className || '';
       if (p.closest('[class*="bg-slate-9"]') || p.closest('[style*="#1f2937"]') || p.closest('[style*="#020617"]')) return;
+      if (cls.includes('text-sm') && cls.includes('text-slate-6')) { Object.assign(p.style, {color:fgColor, fontSize:'.875rem'}); return; }
       if (cls.includes('text-xs') || cls.includes('text-slate-4') || cls.includes('text-slate-5')) Object.assign(p.style, {fontSize:'.75rem', color:fg2Color, textAlign:'center', lineHeight:'1.5'});
     });
     sec.querySelectorAll('[class*="bg-amber-50"],[class*="border-dashed"]').forEach(el => Object.assign(el.style, {background:isDark?'rgba(214,58,42,.1)':'#fff5f5', borderColor:'#fca5a5', borderRadius:'10px'}));
@@ -1579,7 +1580,8 @@ const observer = new MutationObserver(() => {
 });
 try {
   const rootEl = document.getElementById('root');
-  if (rootEl) observer.observe(rootEl, {childList: true, subtree: true});h
+  if (rootEl) observer.observe(rootEl, {childList: true, subtree: true});
+  rootEl.addEventListener('input', function() { clearTimeout(_styleTimer); _styleTimer = setTimeout(styleApp, 80); }, true);h
 } catch (err) {
   if (window.__BMC_DEBUG) console.error('[Observer]', err);
 }
