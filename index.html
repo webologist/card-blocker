@@ -414,6 +414,8 @@ body{font-family:'Inter','Noto Sans Devanagari','Noto Sans Gujarati',system-ui,s
 #root .text-red-400{color:#f87171}
 #root .text-red-700{color:#b91c1c}
 #root .text-red-800{color:#991b1b}
+#root .bg-red-700{background-color:#b91c1c!important;color:#fff}
+#root .bg-red-700:hover{background-color:#991b1b!important}
 #root .text-amber-800{color:#92400e}
 #root .text-blue-800{color:#1e40af}
 #root .text-blue-900{color:#1e3a8a}
@@ -1391,8 +1393,7 @@ function _styleAppImpl() {
       const cls = btn.className || '';
       const txt = (btn.textContent || '').trim();
       if (cls.includes('bg-red-700')) {
-        var isBlockBtn = cls.includes('px-6') || (cls.includes('font-bold') && !cls.includes('px-3'));
-        Object.assign(btn.style, {background:RED, fontWeight:'700', borderRadius:'8px', color:'#fff', border:'none', cursor:'pointer', padding: isBlockBtn ? '.5rem 1.25rem' : '.35rem .9rem', fontSize: isBlockBtn ? '.95rem' : '.82rem', display:'inline-flex', alignItems:'center', gap:'.3rem'});
+        Object.assign(btn.style, {background:RED, fontWeight:'700', borderRadius:'8px', color:'#fff', border:'none', cursor:'pointer', padding:'.35rem .9rem', fontSize:'.82rem', display:'inline-flex', alignItems:'center', gap:'.3rem'});
         btn.onmouseenter = () => btn.style.background = RED_DARK;
         btn.onmouseleave = () => btn.style.background = RED;
         return;
