@@ -130,7 +130,20 @@
             _pendingToken = data.token;
             btn.textContent = dummy ? 'OTP sent (use 1234)' : 'OTP sent';
             if (dummy) showError('Dummy mode - enter 1234 as the OTP.');
-            setTimeout(function(){ btn.textContent = 'Resend OTP'; btn.disabled = false; }, 30000);
+            (function() {
+          var secs = 60;
+          btn.textContent = 'Resend OTP in ' + secs + 's';
+          var countdown = setInterval(function() {
+            secs--;
+            if (secs <= 0) {
+              clearInterval(countdown);
+              btn.textContent = 'Resend OTP';
+              btn.disabled = false;
+            } else {
+              btn.textContent = 'Resend OTP in ' + secs + 's';
+            }
+          }, 1000);
+        })();
           });
         })
         .catch(function(err) { showError(err.name === 'AbortError' ? 'Request timed out.' : 'No connection.'); btn.disabled = false; btn.textContent = orig; });
