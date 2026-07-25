@@ -1,6 +1,6 @@
 // otp-bridge.js
 (function () {
-  var lastPhone=sessionStorage.getItem('bmc_phone')||'',_pendingToken=sessionStorage.getItem('bmc_token')||null,_allowVerify=false,_otpValue=null,_toastTimer=null,_resendCountdown=null;
+  var lastPhone=sessionStorage.getItem('bmc_phone')||'',_pendingToken=sessionStorage.getItem('bmc_token')||null,_allowVerify=false,_allowSend=false,_otpValue=null,_toastTimer=null,_resendCountdown=null;
   Object.defineProperty(window,'__bmc_otp',{get:function(){return _otpValue;},set:function(v){_otpValue=v;},enumerable:false,configurable:true});
   function loadAdminToggle(){if(document.querySelector('script[src*="admin-otp-toggle"]'))return;var s=document.createElement('script');s.src='/admin-otp-toggle.js';s.async=true;document.head.appendChild(s);}
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',loadAdminToggle);else loadAdminToggle();
@@ -28,10 +28,10 @@ if(!btn){var skipBtn=[...document.querySelectorAll('#root button')].find(functio
       hideError();lastPhone='+91'+digits;sessionStorage.setItem('bmc_phone',lastPhone);_pendingToken=null;sessionStorage.removeItem('bmc_token');_otpValue=null;
       btn.disabled=true;var orig=btn.textContent;btn.textContent='Sending...';
       var dummy=getDummyMode();
-      if(dummy){_pendingToken='dummy-mode';sessionStorage.setItem('bmc_token','dummy-mode');btn.textContent='OTP sent (use 1234)';showError('Dummy mode - enter 1234 as the OTP.');setTimeout(function(){btn.textContent='Send OTP';btn.disabled=false;},60000);return;}
+      if(dummy){_pendingToken='dummy-mode';sessionStorage.setItem('bmc_token','dummy-mode');_allowSend=true;btn.disabled=false;btn.textContent=orig;btn.click();return;}
       fetchWT('/api/send-otp',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({phone:lastPhone,dummyMode:dummy})})
-        .then(function(res){if(res.status===429){showError('Too many requests. Please wait.');btn.disabled=false;btn.textContent=orig;return;}if(!res.ok){showError('Server error. Please try again.');btn.disabled=false;btn.textContent=orig;return;}return safeJson(res).then(function(data){if(!data||!data.token){showError((data&&data.error)||'Failed to send OTP.');btn.disabled=false;btn.textContent=orig;return;}_pendingToken=data.token;sessionStorage.setItem('bmc_token',_pendingToken);btn.textContent=dummy?'OTP sent (use 1234)':'OTP sent';if(dummy)showError('Dummy mode - enter 1234 as the OTP.');setTimeout(function(){btn.textContent='Send OTP';btn.disabled=false;},60000);});})
-        .catch(function(err){showError(err.name==='AbortError'?'Request timed out.':'No connection.');btn.disabled=false;btn.textContent=orig;});
+        .then(function(res){if(res.status===429){showError('Too many OTP requests. Please wait 10 minutes.');btn.disabled=false;btn.textContent=orig;return;}if(!res.ok){showError('Could not send OTP. Please try again.');btn.disabled=false;btn.textContent=orig;return;}return safeJson(res).then(function(data){if(!data||!data.token){showError((data&&data.error)||'Could not send OTP. Please try again.');btn.disabled=false;btn.textContent=orig;return;}_pendingToken=data.token;sessionStorage.setItem('bmc_token',_pendingToken);btn.textContent=dummy?'OTP sent (use 1234)':'OTP sent';if(dummy)showError('Dummy mode - enter 1234 as the OTP.');setTimeout(function(){btn.textContent='Send OTP';btn.disabled=false;},60000);});})
+        .catch(function(err){showError(err.name==='AbortError'?'Request timed out. Check your signal.':'No connection. Please check your signal.');btn.disabled=false;btn.textContent=orig;});
     }
     if(text==='Verify OTP'){
       if(_allowVerify){_allowVerify=false;return;}
@@ -40,7 +40,7 @@ if(!btn){var skipBtn=[...document.querySelectorAll('#root button')].find(functio
       var entered=((otpInput&&otpInput.value)||'').replace(/[^0-9]/g,'');
       if(!/^[0-9]{4,6}$/.test(entered)){showError('Enter the OTP sent to your phone.');return;}
       if(!lastPhone){var d2=sanitisePhone((document.querySelector('input[type="tel"]')||{}).value);if(/^[0-9]{10}$/.test(d2))lastPhone='+91'+d2;}
-      if(!_pendingToken){showError('Session expired - tap Send OTP again.');return;}
+      if(!_pendingToken){showError('OTP was not sent — please tap Send OTP first.');return;}
       hideError();btn.disabled=true;var orig2=btn.textContent;btn.textContent='Verifying...';
       var dummy2=getDummyMode();
       if(dummy2&&_pendingToken==='dummy-mode'){if(entered==='1234'){sessionStorage.removeItem('bmc_token');sessionStorage.removeItem('bmc_phone');_pendingToken=null;_otpValue=entered;_allowVerify=true;clearInterval(_resendCountdown);var rb=document.getElementById('bmc-resend-btn');if(rb)rb.remove();btn.disabled=false;btn.textContent=orig2;btn.click();}else{showError('Incorrect OTP. In dummy mode, the code is 1234.');btn.disabled=false;btn.textContent=orig2;}return;}
