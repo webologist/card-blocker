@@ -49,4 +49,44 @@ if(!btn){var skipBtn=[...document.querySelectorAll('#root button')].find(functio
         .catch(function(err){showError(err.name==='AbortError'?'Timed out.':'Verification failed.');btn.disabled=false;btn.textContent=orig2;});
     }
   },true);
+
+  var _quickLoginInjected=false;
+  function injectQuickLogin(){
+    var phoneInput=document.querySelector('#root input[type="tel"]');
+    var otpInput=document.querySelector('#root input[maxlength="6"]');
+    if(!phoneInput||otpInput){_quickLoginInjected=false;return;}
+    if(document.getElementById('bmc-quick-login'))return;
+    window.storage.get('cbp:users').then(function(result){
+      if(!result||!result.value)return;
+      var users;try{users=JSON.parse(result.value);}catch(e){return;}
+      var accounts=Object.values(users).filter(function(u){return u.paid&&u.saved&&u.phone&&u.cards&&u.cards.length>0;});
+      if(!accounts.length)return;
+      var panel=document.createElement('div');panel.id='bmc-quick-login';
+      panel.style.cssText='margin-top:1rem;border-top:1px solid #e2e8f0;padding-top:1rem;';
+      var lbl=document.createElement('p');
+      lbl.style.cssText='font-size:.75rem;color:#94a3b8;font-weight:600;text-transform:uppercase;letter-spacing:.05em;margin-bottom:.5rem;';
+      lbl.textContent='Quick login';panel.appendChild(lbl);
+      accounts.forEach(function(u){
+        var masked=u.phone.slice(0,2)+'••••••'+u.phone.slice(-2);
+        var display=(u.name?u.name+'  ·  ':'')+masked+'  ·  '+u.cards.length+(u.cards.length===1?' card':' cards');
+        var btn=document.createElement('button');btn.type='button';
+        btn.style.cssText='display:flex;align-items:center;width:100%;text-align:left;padding:.5rem .75rem;border:1px solid #e2e8f0;border-radius:.5rem;margin-bottom:.375rem;background:#fff;cursor:pointer;font-family:ui-sans-serif,system-ui,sans-serif;gap:.5rem;';
+        btn.onmouseenter=function(){btn.style.borderColor='#94a3b8';btn.style.background='#f8fafc';};
+        btn.onmouseleave=function(){btn.style.borderColor='#e2e8f0';btn.style.background='#fff';};
+        var icon=document.createElement('span');icon.textContent='⚡';icon.style.cssText='font-size:.9rem;flex-shrink:0;opacity:.5;';btn.appendChild(icon);
+        var txt=document.createElement('span');txt.style.cssText='font-size:.8125rem;color:#0f172a;line-height:1.4;';txt.textContent=display;btn.appendChild(txt);
+        btn.onclick=function(ev){
+          ev.stopPropagation();
+          var nSet=Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value');
+          if(nSet&&nSet.set){nSet.set.call(phoneInput,u.phone);}else{phoneInput.value=u.phone;}
+          phoneInput.dispatchEvent(new Event('input',{bubbles:true}));
+          phoneInput.scrollIntoView({block:'center'});phoneInput.focus();
+        };
+        panel.appendChild(btn);
+      });
+      var sec=phoneInput;while(sec&&sec.tagName!=='SECTION'){sec=sec.parentElement;}
+      if(sec&&sec.parentElement){sec.parentElement.insertBefore(panel,sec.nextSibling);_quickLoginInjected=true;}
+    }).catch(function(){});
+  }
+  setInterval(injectQuickLogin,700);
 })();
