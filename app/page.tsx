@@ -66,7 +66,7 @@ export default function Home() {
 
   return (
         <div style={styles.container}>
-                <h1 style={styles.title}>Welcome to Your Notes App</h1>h1>
+                <h1 style={styles.title}>Welcome to Your Notes App</h1>
 
                 <div style={styles.form}>
                           <input
