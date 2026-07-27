@@ -30,8 +30,22 @@ function isDummyMode(reqBody) {
   return false;
 }
 
+const ALLOWED_ORIGINS = ['https://card-blocker.vercel.app'];
+
+// Twilio trial accounts reject SMS to numbers that haven't been verified in the console (21608/21211).
+function unverifiedNumberError(data) {
+  if (data && (data.code === 21608 || data.code === 21211)) {
+    return 'This number isn\'t whitelisted for our trial SMS account yet. Please contact support to get verified, or try a different number.';
+  }
+  return null;
+}
+
 export default async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Origin', 'https://card-blocker.vercel.app');
+  const origin = req.headers.origin;
+  if (origin && !ALLOWED_ORIGINS.includes(origin)) {
+    return res.status(403).json({ error: 'Origin not allowed' });
+  }
+  res.setHeader('Access-Control-Allow-Origin', ALLOWED_ORIGINS[0]);
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
   if (req.method === 'OPTIONS') return res.status(200).end();
@@ -41,7 +55,7 @@ export default async function handler(req, res) {
   if (!phone) return res.status(400).json({ error: 'Phone number is required' });
 
   const digits = phone.replace(/\D/g, '').replace(/^91/, '');
-  if (!/^\d{10}$/.test(digits)) return res.status(400).json({ error: 'Invalid phone number' });
+  if (!/^[6-9]\d{9}$/.test(digits)) return res.status(400).json({ error: 'Invalid phone number. Enter a 10-digit Indian mobile number starting with 6-9.' });
 
   if (isRateLimited(digits)) {
     return res.status(429).json({ error: 'Too many OTP requests. Please wait 10 minutes.' });
@@ -79,6 +93,8 @@ export default async function handler(req, res) {
       const data = await verifyRes.json();
       if (!verifyRes.ok) {
         console.error('[OTP] Twilio Verify error:', JSON.stringify(data));
+        const unverified = unverifiedNumberError(data);
+        if (unverified) return res.status(400).json({ error: unverified });
         return res.status(500).json({ error: 'Failed to send OTP. Please try again.' });
       }
       return res.status(200).json({ success: true, token: `verify:${fullPhone}` });
@@ -111,6 +127,8 @@ export default async function handler(req, res) {
       const data = await twilioRes.json();
       if (!twilioRes.ok) {
         console.error('[OTP] Twilio error:', JSON.stringify(data));
+        const unverified = unverifiedNumberError(data);
+        if (unverified) return res.status(400).json({ error: unverified });
         return res.status(500).json({ error: 'Failed to send OTP. Please try again.' });
       }
       return res.status(200).json({ success: true, token });

@@ -1,4 +1,12 @@
 const attemptMap = new Map();
+const usedTokens = new Map();
+
+function isTokenUsed(token) {
+  const exp = usedTokens.get(token);
+  if (exp === undefined) return false;
+  if (Date.now() > exp) { usedTokens.delete(token); return false; }
+  return true;
+}
 
 async function verifySignedToken(tokenStr) {
   const secret = process.env.OTP_SECRET || 'bmc-otp-secret-2026';
@@ -21,8 +29,14 @@ function isDummyMode(reqBody) {
   return false;
 }
 
+const ALLOWED_ORIGINS = ['https://card-blocker.vercel.app'];
+
 export default async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Origin', 'https://card-blocker.vercel.app');
+  const origin = req.headers.origin;
+  if (origin && !ALLOWED_ORIGINS.includes(origin)) {
+    return res.status(403).json({ error: 'Origin not allowed' });
+  }
+  res.setHeader('Access-Control-Allow-Origin', ALLOWED_ORIGINS[0]);
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
   if (req.method === 'OPTIONS') return res.status(200).end();
@@ -71,9 +85,12 @@ export default async function handler(req, res) {
   if (attempts >= 5) {
     return res.status(429).json({ error: 'Too many incorrect attempts. Please request a new OTP.' });
   }
+  if (isTokenUsed(token)) {
+    return res.status(400).json({ error: 'This OTP has already been used. Please request a new one.' });
+  }
   let record;
   try { record = await verifySignedToken(token); }
-  catch { return res.status(400).json({ error: 'Invalid session. Please request a new OTP.' }); }
+  catch { return res.status(401).json({ error: 'Invalid or tampered token. Please request a new OTP.' }); }
   if (record.phone !== fullPhone) return res.status(400).json({ error: 'Phone number mismatch.' });
   if (Date.now() > record.expiresAt) return res.status(400).json({ error: 'OTP has expired.' });
   if (record.otp !== otp.toString().trim()) {
@@ -82,5 +99,6 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: `Incorrect OTP. ${left} attempt${left === 1 ? '' : 's'} remaining.` });
   }
   attemptMap.delete(token);
+  usedTokens.set(token, record.expiresAt);
   return res.status(200).json({ success: true });
 }

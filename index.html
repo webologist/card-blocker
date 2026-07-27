@@ -926,8 +926,10 @@ body{font-family:'Inter','Noto Sans Devanagari','Noto Sans Gujarati',system-ui,s
     </div>
     <div style="position:relative">
       <!-- H3 — fallback is a SIBLING of #root, never inside it — React needs a clean empty div -->
+      <!-- TC-29 — noscript forces the fallback visible when JS is disabled (JS would otherwise never reveal it) -->
+      <noscript><style>#app-fallback{display:block !important}</style></noscript>
       <div id="app-fallback" style="display:none;background:rgba(255,255,255,.12);border-radius:16px;padding:2rem;text-align:center;color:#fff;font-size:.9rem">
-        <p style="opacity:.85">Loading registration form&#x2026;</p>
+        <p style="opacity:.85">Loading registration form&#x2026; If this message doesn&#x2019;t go away, please enable JavaScript or contact <a href="mailto:support@blockmycard.in" style="color:#fff;font-weight:700;text-decoration:underline">support@blockmycard.in</a>.</p>
       </div>
       <div id="root"></div>
     </div>
@@ -1574,16 +1576,16 @@ function _styleAppImpl() {
   root.querySelectorAll('[class*="bg-emerald-7"]').forEach(el => Object.assign(el.style, {background:'#059669', borderRadius:'8px', color:'#fff'}));
 }
 
-/* M5 — single debounced MutationObserver, no double-setTimeout */h
+/* M5 — single debounced MutationObserver, no double-setTimeout */
 let _styleTimer = null;
 const observer = new MutationObserver(() => {
-  clearTimeout(_styleTimer);h
+  clearTimeout(_styleTimer);
   _styleTimer = setTimeout(styleApp, 80);
 });
 try {
   const rootEl = document.getElementById('root');
   if (rootEl) observer.observe(rootEl, {childList: true, subtree: true});
-  rootEl.addEventListener('input', function() { clearTimeout(_styleTimer); _styleTimer = setTimeout(styleApp, 80); }, true);h
+  rootEl.addEventListener('input', function() { clearTimeout(_styleTimer); _styleTimer = setTimeout(styleApp, 80); }, true);
 } catch (err) {
   if (window.__BMC_DEBUG) console.error('[Observer]', err);
 }
@@ -1595,7 +1597,6 @@ setTimeout(() => {
   // root.firstChild is null only if React never ran — fallback still visible
   if (fb && fb.style.display !== 'none' && root && !root.firstChild) {
     fb.innerHTML = '<p style="color:#fecaca;font-size:.88rem">Could not load the form. <a href="javascript:location.reload()" style="color:#fff;font-weight:700;text-decoration:underline">Refresh the page</a> or <a href="mailto:support@blockmycard.in" style="color:#fff;font-weight:700;text-decoration:underline">contact support</a>.</p>';
-  <script src="./admin-otp-toggle.js"></script>h
   }
 }, 5000);
 </script>
