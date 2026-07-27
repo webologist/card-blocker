@@ -1,7 +1,11 @@
 // login-email-notifier.js
-// Watches the shared activity log (cbp:logs) for fresh "Login" entries and
-// asks the server to send a login-notification email for each one, via
-// whichever provider the admin has connected in Email Integrations.
+// Watches the shared activity log (cbp:logs) for fresh account-access entries
+// and asks the server to email the user about each one, via whichever provider
+// the admin has connected in Email Integrations.
+//
+// Two actions count, because the app logs them differently: a returning user
+// produces "Login", while a brand-new signup produces "Registered" and never
+// a "Login". Watching only "Login" silently skipped every first-time user.
 // Does not touch app.js - follows the same storage-polling pattern as
 // admin-otp-toggle.js / otp-bridge.js's quick-login panel.
 (function () {
@@ -9,11 +13,13 @@
 
   function serialize(entry) { return entry.t + '|' + entry.actor + '|' + entry.action + '|' + entry.detail; }
 
-  function notify(phone, ts) {
+  var EMAIL_ON = { 'Login': 'login', 'Registered': 'registered' };
+
+  function notify(phone, ts, event) {
     fetch('/api/login-email', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ phone: phone, ts: ts }),
+      body: JSON.stringify({ phone: phone, ts: ts, event: event }),
     }).catch(function () {});
   }
 
@@ -36,7 +42,8 @@
         var key = serialize(logs[i]);
         if (seen.has(key)) break;
         seen.add(key);
-        if (logs[i].action === 'Login') notify(logs[i].actor, logs[i].t);
+        var evt = EMAIL_ON[logs[i].action];
+        if (evt) notify(logs[i].actor, logs[i].t, evt);
       }
     }).catch(function () {});
   }

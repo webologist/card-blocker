@@ -101,11 +101,20 @@ three and switch which one sends by ticking the box on whichever you want.
 
 ## How the login email works
 
-1. Any user logs in → the app's own activity log (`cbp:logs`) gets a `Login`
-   entry, same as it always did.
+1. A user signs in → the app's own activity log (`cbp:logs`) gets an entry.
+   **Two actions matter**, because the app records them differently:
+   - a returning user produces `Login`
+   - a brand-new signup produces `Registered` and *never* a `Login`
+
+   Watching only `Login` silently skips every first-time user, which is exactly
+   the bug that shipped initially. Both are handled now, with different wording
+   ("new login to your account" vs "your account is ready").
 2. `login-email-notifier.js` (loaded on every page) polls that log every 3s
-   for new `Login` entries and calls `/api/login-email` with the phone + log
-   timestamp.
+   for new entries and calls `/api/login-email` with the phone, log timestamp,
+   and which event it was.
+
+   On its first read it records everything already in the log as a baseline and
+   sends nothing, so enabling this never blasts users about historical logins.
 3. The server looks up that phone's saved email in `cbp:users`, and — only if
    an email is on file and a provider is active — sends a "new login to your
    account" notice through it.

@@ -1,9 +1,10 @@
 // api/login-email.js
 // Called by a small client-side poller (login-email-notifier.js) whenever a
-// fresh "Login" entry shows up in the shared activity log. Looks up that
-// user's saved email and sends a login-notification email via whichever
-// provider the admin has connected. Best-effort and silent on failure -
-// this must never block or affect the user's actual login flow.
+// fresh account-access entry shows up in the shared activity log - either a
+// "Login" (returning user) or a "Registered" (first-time signup). Looks up
+// that user's saved email and notifies them via whichever provider the admin
+// has connected. Best-effort and silent on failure - this must never block or
+// affect the user's actual login flow.
 const { createClient } = require('@supabase/supabase-js');
 const { getSettings, claimLoginEmail } = require('../lib/email-settings-store');
 const { sendEmail } = require('../lib/email-providers');
@@ -27,6 +28,24 @@ function supabaseClient() {
   return createClient(url, key);
 }
 
+// Wording differs by event: a signup is expected and reassuring, a login on an
+// existing account is the one worth flagging as "wasn't you?".
+function buildMessage(event, user, phone, ts) {
+  const greeting = `Hi${user.name ? ' ' + user.name : ''},`;
+  if (event === 'registered') {
+    return {
+      subject: 'Your BlockMyCard account is ready',
+      html: `<p>${greeting}</p><p>Your BlockMyCard account (${phone}) was created on ${ts}.</p><p>You can now save your card details so you can block them quickly if your wallet or phone is ever lost.</p>`,
+      text: `Your BlockMyCard account (${phone}) was created on ${ts}. You can now save your card details so you can block them quickly if your wallet or phone is ever lost.`,
+    };
+  }
+  return {
+    subject: 'New login to your BlockMyCard account',
+    html: `<p>${greeting}</p><p>Your BlockMyCard account (${phone}) was just logged into at ${ts}.</p><p>If this wasn't you, we recommend checking your saved cards and contact details right away.</p>`,
+    text: `Your BlockMyCard account (${phone}) was just logged into at ${ts}. If this wasn't you, check your saved cards and contact details.`,
+  };
+}
+
 export default async function handler(req, res) {
   const origin = req.headers.origin;
   if (origin && !ALLOWED_ORIGINS.includes(origin)) return res.status(403).json({ error: 'Origin not allowed' });
@@ -36,7 +55,7 @@ export default async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-  const { phone, ts } = req.body || {};
+  const { phone, ts, event } = req.body || {};
   // Always answer {ok:true} on well-formed-but-uninteresting input so this
   // endpoint can't be used to probe which phone numbers exist.
   if (!phone || !ts) return res.status(200).json({ ok: true });
@@ -56,12 +75,7 @@ export default async function handler(req, res) {
     const user = users[phone];
     if (!user || !user.email) return res.status(200).json({ ok: true });
 
-    await sendEmail(cfg, null, {
-      to: user.email,
-      subject: 'New login to your BlockMyCard account',
-      html: `<p>Hi${user.name ? ' ' + user.name : ''},</p><p>Your BlockMyCard account (${phone}) was just logged into at ${ts}.</p><p>If this wasn't you, we recommend checking your saved cards and contact details right away.</p>`,
-      text: `Your BlockMyCard account (${phone}) was just logged into at ${ts}. If this wasn't you, check your saved cards and contact details.`,
-    });
+    await sendEmail(cfg, null, Object.assign({ to: user.email }, buildMessage(event, user, phone, ts)));
     return res.status(200).json({ ok: true });
   } catch (e) {
     console.error('[login-email] error:', e.message);
