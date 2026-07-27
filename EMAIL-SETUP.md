@@ -18,7 +18,6 @@ card-blocker/
 │   └── login-email.js           ← POST - called after a real user login (see below)
 ├── admin-email-integrations.js  ← injects the "Email Integrations" admin tab
 ├── login-email-notifier.js      ← watches the activity log for fresh logins
-├── admin-open-in-new-tab.js     ← makes every admin tab open in its own browser tab
 └── server.js                    ← same routes added for local dev
 ```
 
@@ -104,13 +103,32 @@ which one is **Active provider**.
 Nothing here blocks or can fail the user's actual login — errors are only
 logged server-side.
 
-## Known limitation — "open in new tab" and admin sessions
+## Why "open each admin activity in a new tab" was removed
 
-This app has no server-side admin session; the Admin console is only
-reachable after entering the admin phone number and OTP in that same browser
-tab, held in memory. `admin-open-in-new-tab.js` makes each admin activity
-(Banks, Messages, Users, Activity log, Feedback, OTP Mode, Email
-Integrations) open in its own new tab, but that new tab still has to go
-through phone + OTP entry first — same as opening the site fresh would.
-Once it reaches the Admin console, the requested tab is auto-selected and the
-URL is cleaned up.
+This was built (`admin-open-in-new-tab.js`) and then removed, because it
+cannot work in this app as currently structured.
+
+Admin access is **in-memory only** — a React state flag flipped after OTP
+verification, with no server-side session and nothing persisted. Any page
+load therefore drops you back to phone + OTP entry.
+
+Opening an activity in a new tab requires a page load by definition, so the
+sequence was always:
+
+1. Click "Users" → interceptor cancels the normal inline tab switch
+2. Browser loads `/?admin_tab=users`
+3. That load wipes the admin flag → the app renders the login screen
+4. The auto-select poller waits for a tab bar that never appears
+
+The visible result was that the admin tabs simply stopped responding.
+
+Making this work needs one of:
+
+- **Persisted admin auth** (a real server-side session, or a signed
+  short-lived token) so a fresh page load can land in the Admin console; or
+- **Access to `app.js` source** so the admin view can be driven by a route
+  rather than by transient in-memory state.
+
+`app.js` is a minified bundle with no source in this repo, so neither is
+possible without that source. Until then the admin tabs switch inline, which
+works. The removed script is in git history if it's useful later.
