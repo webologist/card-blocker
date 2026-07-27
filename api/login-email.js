@@ -1,0 +1,70 @@
+// api/login-email.js
+// Called by a small client-side poller (login-email-notifier.js) whenever a
+// fresh "Login" entry shows up in the shared activity log. Looks up that
+// user's saved email and sends a login-notification email via whichever
+// provider the admin has connected. Best-effort and silent on failure -
+// this must never block or affect the user's actual login flow.
+const { createClient } = require('@supabase/supabase-js');
+const { getSettings, claimLoginEmail } = require('../lib/email-settings-store');
+const { sendEmail } = require('../lib/email-providers');
+
+const ALLOWED_ORIGINS = ['https://card-blocker.vercel.app'];
+
+const rateLimitMap = new Map();
+function isRateLimited(phone) {
+  const now = Date.now();
+  const windowMs = 3 * 60 * 1000;
+  const hits = (rateLimitMap.get(phone) || []).filter((t) => now - t < windowMs);
+  if (hits.length >= 2) return true;
+  hits.push(now);
+  rateLimitMap.set(phone, hits);
+  return false;
+}
+
+function supabaseClient() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  return createClient(url, key);
+}
+
+export default async function handler(req, res) {
+  const origin = req.headers.origin;
+  if (origin && !ALLOWED_ORIGINS.includes(origin)) return res.status(403).json({ error: 'Origin not allowed' });
+  res.setHeader('Access-Control-Allow-Origin', ALLOWED_ORIGINS[0]);
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  if (req.method === 'OPTIONS') return res.status(200).end();
+  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+
+  const { phone, ts } = req.body || {};
+  // Always answer {ok:true} on well-formed-but-uninteresting input so this
+  // endpoint can't be used to probe which phone numbers exist.
+  if (!phone || !ts) return res.status(200).json({ ok: true });
+  if (isRateLimited(phone)) return res.status(200).json({ ok: true });
+
+  const supabase = supabaseClient();
+  try {
+    const claimed = await claimLoginEmail(supabase, phone, String(ts));
+    if (!claimed) return res.status(200).json({ ok: true }); // already sent for this exact login
+
+    const cfg = await getSettings(supabase);
+    if (!cfg || !cfg.active_provider) return res.status(200).json({ ok: true });
+
+    const { data } = await supabase.from('kv_store').select('value').eq('key', 'cbp:users').single();
+    if (!data) return res.status(200).json({ ok: true });
+    const users = JSON.parse(data.value);
+    const user = users[phone];
+    if (!user || !user.email) return res.status(200).json({ ok: true });
+
+    await sendEmail(cfg, null, {
+      to: user.email,
+      subject: 'New login to your BlockMyCard account',
+      html: `<p>Hi${user.name ? ' ' + user.name : ''},</p><p>Your BlockMyCard account (${phone}) was just logged into at ${ts}.</p><p>If this wasn't you, we recommend checking your saved cards and contact details right away.</p>`,
+      text: `Your BlockMyCard account (${phone}) was just logged into at ${ts}. If this wasn't you, check your saved cards and contact details.`,
+    });
+    return res.status(200).json({ ok: true });
+  } catch (e) {
+    console.error('[login-email] error:', e.message);
+    return res.status(200).json({ ok: true }); // never surface send failures to the client
+  }
+}

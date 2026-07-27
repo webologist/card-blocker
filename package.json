@@ -3,12 +3,14 @@
     "version": "0.1.0",
     "private": true,
     "dependencies": {
+        "@aws-sdk/client-ses": "^3.1095.0",
         "@supabase/supabase-js": "^2.110.8",
         "cors": "^2.8.6",
         "dotenv": "^17.4.2",
         "express": "^5.2.1",
         "lowdb": "^7.0.1",
         "next": "^14",
+        "nodemailer": "^9.0.3",
         "pg": "^8.22.0",
         "react": "^18",
         "react-dom": "^18"

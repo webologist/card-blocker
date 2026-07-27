@@ -4,6 +4,9 @@ const cors = require('cors');
 const path = require('path');
 const fs = require('fs');
 const { createClient } = require('@supabase/supabase-js');
+const { checkAdminKey } = require('./lib/admin-auth');
+const { getSettings, saveSettings, claimLoginEmail } = require('./lib/email-settings-store');
+const { sendEmail, maskSettings } = require('./lib/email-providers');
 
 const app = express();
 app.use(cors());
@@ -98,6 +101,100 @@ app.post('/api/verify-otp', async (req, res) => {
   res.json({ success: true });
 });
 
+// ── Email integrations (Brevo / AWS SES / Gmail) ──
+const WRITABLE_EMAIL_FIELDS = [
+  'active_provider',
+  'brevo_api_key', 'brevo_from_email', 'brevo_from_name',
+  'ses_access_key_id', 'ses_secret_access_key', 'ses_region', 'ses_from_email',
+  'gmail_address', 'gmail_app_password', 'gmail_from_name',
+];
+
+app.get('/api/email-settings', async (req, res) => {
+  const auth = checkAdminKey(req);
+  if (!auth.ok) return res.status(401).json({ error: auth.error });
+  try {
+    const row = await getSettings(supabase);
+    res.json(maskSettings(row));
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.post('/api/email-settings', async (req, res) => {
+  const auth = checkAdminKey(req);
+  if (!auth.ok) return res.status(401).json({ error: auth.error });
+  const body = req.body || {};
+  const patch = {};
+  for (const f of WRITABLE_EMAIL_FIELDS) {
+    if (body[f] !== undefined && body[f] !== '') patch[f] = body[f];
+  }
+  if (body.active_provider === null) patch.active_provider = null;
+  try {
+    const row = await saveSettings(supabase, patch);
+    res.json(maskSettings(row));
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.post('/api/email-settings/test', async (req, res) => {
+  const auth = checkAdminKey(req);
+  if (!auth.ok) return res.status(401).json({ error: auth.error });
+  const { to, provider } = req.body || {};
+  if (!to) return res.status(400).json({ error: 'A recipient email ("to") is required.' });
+  try {
+    const cfg = await getSettings(supabase);
+    if (!cfg) return res.status(400).json({ error: 'No email provider has been configured yet.' });
+    const result = await sendEmail(cfg, provider, {
+      to,
+      subject: 'BlockMyCard test email',
+      html: '<p>This is a test email from your BlockMyCard admin console. If you got this, the connection works.</p>',
+      text: 'This is a test email from your BlockMyCard admin console. If you got this, the connection works.',
+    });
+    res.json({ success: true, provider: result.provider });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+const loginEmailRateLimit = new Map();
+function isLoginEmailRateLimited(phone) {
+  const now = Date.now();
+  const windowMs = 3 * 60 * 1000;
+  const hits = (loginEmailRateLimit.get(phone) || []).filter((t) => now - t < windowMs);
+  if (hits.length >= 2) return true;
+  hits.push(now);
+  loginEmailRateLimit.set(phone, hits);
+  return false;
+}
+
+app.post('/api/login-email', async (req, res) => {
+  const { phone, ts } = req.body || {};
+  if (!phone || !ts) return res.json({ ok: true });
+  if (isLoginEmailRateLimited(phone)) return res.json({ ok: true });
+  try {
+    const claimed = await claimLoginEmail(supabase, phone, String(ts));
+    if (!claimed) return res.json({ ok: true });
+    const cfg = await getSettings(supabase);
+    if (!cfg || !cfg.active_provider) return res.json({ ok: true });
+    const { data } = await supabase.from('kv_store').select('value').eq('key', 'cbp:users').single();
+    if (!data) return res.json({ ok: true });
+    const users = JSON.parse(data.value);
+    const user = users[phone];
+    if (!user || !user.email) return res.json({ ok: true });
+    await sendEmail(cfg, null, {
+      to: user.email,
+      subject: 'New login to your BlockMyCard account',
+      html: `<p>Hi${user.name ? ' ' + user.name : ''},</p><p>Your BlockMyCard account (${phone}) was just logged into at ${ts}.</p><p>If this wasn't you, we recommend checking your saved cards and contact details right away.</p>`,
+      text: `Your BlockMyCard account (${phone}) was just logged into at ${ts}. If this wasn't you, check your saved cards and contact details.`,
+    });
+    res.json({ ok: true });
+  } catch (e) {
+    console.error('[login-email] error:', e.message);
+    res.json({ ok: true });
+  }
+});
+
 // ── Inject storage bridge into index.html ──
 function sendApp(req, res) {
   let html = fs.readFileSync(path.join(__dirname, 'index.html'), 'utf8');
@@ -131,5 +228,26 @@ app.listen(PORT, async () => {
     console.log('  DB error:', error.message);
   } else {
     console.log('  Database: Supabase kv_store OK');
+  }
+
+  // Check if the email-integration tables exist
+  const { error: emailErr } = await supabase.from('email_settings').select('id').limit(1);
+  if (emailErr && (emailErr.code === '42P01' || emailErr.code === 'PGRST205')) {
+    console.log('  WARNING: email_settings/login_email_log tables missing!');
+    console.log('  Run this in Supabase SQL editor:');
+    console.log(`  CREATE TABLE email_settings (
+    id INT PRIMARY KEY DEFAULT 1, active_provider TEXT,
+    brevo_api_key TEXT, brevo_from_email TEXT, brevo_from_name TEXT,
+    ses_access_key_id TEXT, ses_secret_access_key TEXT, ses_region TEXT, ses_from_email TEXT,
+    gmail_address TEXT, gmail_app_password TEXT, gmail_from_name TEXT,
+    updated_at TIMESTAMPTZ DEFAULT NOW(), CONSTRAINT email_settings_singleton CHECK (id = 1));
+  ALTER TABLE email_settings ENABLE ROW LEVEL SECURITY;
+  CREATE TABLE login_email_log (phone TEXT NOT NULL, ts TEXT NOT NULL, sent_at TIMESTAMPTZ DEFAULT NOW(), PRIMARY KEY (phone, ts));
+  ALTER TABLE login_email_log ENABLE ROW LEVEL SECURITY;`);
+  } else if (!emailErr) {
+    console.log('  Database: email_settings/login_email_log OK');
+  }
+  if (!process.env.ADMIN_API_SECRET) {
+    console.log('  WARNING: ADMIN_API_SECRET is not set - email integration admin endpoints will reject all requests.');
   }
 });
