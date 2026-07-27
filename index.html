@@ -1586,6 +1586,9 @@ try {
   const rootEl = document.getElementById('root');
   if (rootEl) observer.observe(rootEl, {childList: true, subtree: true});
   rootEl.addEventListener('input', function() { clearTimeout(_styleTimer); _styleTimer = setTimeout(styleApp, 80); }, true);
+  // Toggle buttons (e.g. Own/Alternate number) only change className on click — no
+  // childList mutation and no input event — so styleApp() never repainted them. Repaint on click too.
+  rootEl.addEventListener('click', function() { clearTimeout(_styleTimer); _styleTimer = setTimeout(styleApp, 80); }, true);
 } catch (err) {
   if (window.__BMC_DEBUG) console.error('[Observer]', err);
 }
