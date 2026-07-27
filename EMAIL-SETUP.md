@@ -71,9 +71,22 @@ as everything else here. Don't reuse this value anywhere else.
 
 ## Step 3 — Connect a provider
 
-Open the Admin console → **Email Integrations** tab, paste the
-`ADMIN_API_SECRET` value into the **Admin key** box once, then fill in
-whichever provider you want:
+Open the Admin console → **Email Integrations** tab, then:
+
+1. Paste the `ADMIN_API_SECRET` value into the **Admin key** box and hit
+   **Unlock** (once per browser tab).
+2. **Step 1 · Choose a provider** — pick Brevo, AWS SES, or Google. Each
+   button shows whether it's already set up and which one is currently in use.
+3. **Step 2 · Credentials** — only the chosen provider's fields appear. Fill
+   them in, tick *"Use … to send login emails"* if this should be the one that
+   sends, and **Save**.
+4. Hit **Send test email** to confirm it actually works before relying on it.
+
+Saved secrets are never sent back to the browser — a stored key shows only as
+`••••1234`, and leaving a secret field blank on save keeps the existing value
+rather than wiping it.
+
+What each provider needs:
 
 - **Brevo**: API key (Brevo dashboard → SMTP & API → API Keys), a verified
   sender email/name.
@@ -83,8 +96,8 @@ whichever provider you want:
   [App Password](https://myaccount.google.com/apppasswords) (not your normal
   password — requires 2-Step Verification to be enabled).
 
-Use **Send test email** on any card to confirm it actually works, then pick
-which one is **Active provider**.
+Only one provider is active at a time. You can keep credentials saved for all
+three and switch which one sends by ticking the box on whichever you want.
 
 ## How the login email works
 
