@@ -168,8 +168,26 @@ function isLoginEmailRateLimited(phone) {
   return false;
 }
 
+// Wording differs by event: a signup is expected and reassuring, a login on an
+// existing account is the one worth flagging as "wasn't you?".
+function buildLoginEmailMessage(event, user, phone, ts) {
+  const greeting = `Hi${user.name ? ' ' + user.name : ''},`;
+  if (event === 'registered') {
+    return {
+      subject: 'Your BlockMyCard account is ready',
+      html: `<p>${greeting}</p><p>Your BlockMyCard account (${phone}) was created on ${ts}.</p><p>You can now save your card details so you can block them quickly if your wallet or phone is ever lost.</p>`,
+      text: `Your BlockMyCard account (${phone}) was created on ${ts}. You can now save your card details so you can block them quickly if your wallet or phone is ever lost.`,
+    };
+  }
+  return {
+    subject: 'New login to your BlockMyCard account',
+    html: `<p>${greeting}</p><p>Your BlockMyCard account (${phone}) was just logged into at ${ts}.</p><p>If this wasn't you, we recommend checking your saved cards and contact details right away.</p>`,
+    text: `Your BlockMyCard account (${phone}) was just logged into at ${ts}. If this wasn't you, check your saved cards and contact details.`,
+  };
+}
+
 app.post('/api/login-email', async (req, res) => {
-  const { phone, ts } = req.body || {};
+  const { phone, ts, event } = req.body || {};
   if (!phone || !ts) return res.json({ ok: true });
   if (isLoginEmailRateLimited(phone)) return res.json({ ok: true });
   try {
@@ -182,12 +200,7 @@ app.post('/api/login-email', async (req, res) => {
     const users = JSON.parse(data.value);
     const user = users[phone];
     if (!user || !user.email) return res.json({ ok: true });
-    await sendEmail(cfg, null, {
-      to: user.email,
-      subject: 'New login to your BlockMyCard account',
-      html: `<p>Hi${user.name ? ' ' + user.name : ''},</p><p>Your BlockMyCard account (${phone}) was just logged into at ${ts}.</p><p>If this wasn't you, we recommend checking your saved cards and contact details right away.</p>`,
-      text: `Your BlockMyCard account (${phone}) was just logged into at ${ts}. If this wasn't you, check your saved cards and contact details.`,
-    });
+    await sendEmail(cfg, null, Object.assign({ to: user.email }, buildLoginEmailMessage(event, user, phone, ts)));
     res.json({ ok: true });
   } catch (e) {
     console.error('[login-email] error:', e.message);
