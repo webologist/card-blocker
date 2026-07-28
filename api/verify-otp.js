@@ -29,9 +29,12 @@ async function verifySignedToken(tokenStr) {
 // `dummyMode` flag let any caller skip OTP verification entirely for any
 // phone number, which also made "the phone was OTP-verified" worthless as a
 // trust signal for anything built on top of it.
-function isDummyMode() {
-  return process.env.OTP_MODE === 'dummy';
-}
+//
+// The environment flag alone is no longer enough either: OTP_MODE=dummy was
+// set on production, so "1234" verified ANY number and minted a real
+// phoneToken for it. lib/otp-mode.js now refuses that on a production
+// deployment unless the number is explicitly listed in OTP_DUMMY_NUMBERS.
+const { isDummyMode } = require('../lib/otp-mode');
 
 const ALLOWED_ORIGINS = ['https://card-blocker.vercel.app'];
 
@@ -52,7 +55,7 @@ export default async function handler(req, res) {
   const digits = phone.replace(/\D/g, '').replace(/^91/, '');
   const fullPhone = '+91' + digits;
 
-  if (isDummyMode()) {
+  if (isDummyMode(fullPhone)) {
     if (otp.toString().trim() === '1234') {
       return res.status(200).json({ success: true, phoneToken: await issuePhoneToken(fullPhone) });
     }
