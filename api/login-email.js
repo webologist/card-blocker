@@ -79,17 +79,24 @@ export default async function handler(req, res) {
 
   const supabase = supabaseClient();
   try {
-    const claimed = await claimLoginEmail(supabase, phone, String(ts));
-    if (!claimed) return res.status(200).json({ ok: true }); // already sent for this exact login
-
+    // Order matters. Signup logs "Registered" as soon as OTP passes, but the
+    // email address is only collected a couple of screens later - so the first
+    // call for a new user legitimately has nothing to send to. Claiming the
+    // row before that check recorded "done" for an email that never went out,
+    // and the claim then blocked every retry. Look first, claim only once
+    // there is something to send.
     const cfg = await getSettings(supabase);
-    if (!cfg || !cfg.active_provider) return res.status(200).json({ ok: true });
+    if (!cfg || !cfg.active_provider) return res.status(200).json({ ok: true, sent: false, reason: 'no-provider' });
 
     const user = await lookupUser(supabase, phone);
-    if (!user || !user.email) return res.status(200).json({ ok: true });
+    if (!user || !user.email) return res.status(200).json({ ok: true, sent: false, reason: 'no-email' });
+
+    // Claimed last, so concurrent tabs still produce exactly one email.
+    const claimed = await claimLoginEmail(supabase, phone, String(ts));
+    if (!claimed) return res.status(200).json({ ok: true, sent: false, reason: 'duplicate' });
 
     await sendEmail(cfg, null, Object.assign({ to: user.email }, buildMessage(event, user, phone, ts)));
-    return res.status(200).json({ ok: true });
+    return res.status(200).json({ ok: true, sent: true });
   } catch (e) {
     console.error('[login-email] error:', e.message);
     return res.status(200).json({ ok: true }); // never surface send failures to the client

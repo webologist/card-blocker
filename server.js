@@ -193,17 +193,24 @@ app.post('/api/login-email', async (req, res) => {
   if (!phone || !ts) return res.json({ ok: true });
   if (isLoginEmailRateLimited(phone)) return res.json({ ok: true });
   try {
-    const claimed = await claimLoginEmail(supabase, phone, String(ts));
-    if (!claimed) return res.json({ ok: true });
+    // See api/login-email.js - look up before claiming, so a signup whose email
+    // has not been entered yet can still be retried once it is.
     const cfg = await getSettings(supabase);
-    if (!cfg || !cfg.active_provider) return res.json({ ok: true });
-    const { data } = await supabase.from('kv_store').select('value').eq('key', 'cbp:users').single();
-    if (!data) return res.json({ ok: true });
-    const users = JSON.parse(data.value);
-    const user = users[phone];
-    if (!user || !user.email) return res.json({ ok: true });
+    if (!cfg || !cfg.active_provider) return res.json({ ok: true, sent: false, reason: 'no-provider' });
+
+    const { data: dir } = await supabase
+      .from('user_directory').select('email, name').eq('phone', phone).maybeSingle();
+    let user = dir && dir.email ? dir : null;
+    if (!user) {
+      const { data } = await supabase.from('kv_store').select('value').eq('key', 'cbp:users').single();
+      if (data) { try { user = JSON.parse(data.value)[phone] || null; } catch (e) { user = null; } }
+    }
+    if (!user || !user.email) return res.json({ ok: true, sent: false, reason: 'no-email' });
+
+    const claimed = await claimLoginEmail(supabase, phone, String(ts));
+    if (!claimed) return res.json({ ok: true, sent: false, reason: 'duplicate' });
     await sendEmail(cfg, null, Object.assign({ to: user.email }, buildLoginEmailMessage(event, user, phone, ts)));
-    res.json({ ok: true });
+    res.json({ ok: true, sent: true });
   } catch (e) {
     console.error('[login-email] error:', e.message);
     res.json({ ok: true });

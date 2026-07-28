@@ -15,12 +15,37 @@
 
   var EMAIL_ON = { 'Login': 'login', 'Registered': 'registered' };
 
+  // Signup logs "Registered" before the email address is collected, so the
+  // first attempt often has nothing to send to. Those are retried until the
+  // address appears; anything else is final.
+  var pending = {};          // key -> { phone, ts, event, tries }
+  var MAX_TRIES = 40;        // ~2 minutes at the 3s poll interval
+
   function notify(phone, ts, event) {
+    var key = phone + '|' + ts;
     fetch('/api/login-email', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ phone: phone, ts: ts, event: event }),
+    }).then(function (r) {
+      return r.json().catch(function () { return {}; });
+    }).then(function (d) {
+      if (d && d.sent === false && d.reason === 'no-email') {
+        var p = pending[key] || { phone: phone, ts: ts, event: event, tries: 0 };
+        p.tries++;
+        if (p.tries >= MAX_TRIES) delete pending[key];
+        else pending[key] = p;
+      } else {
+        delete pending[key];   // sent, duplicate, or no provider - stop asking
+      }
     }).catch(function () {});
+  }
+
+  function retryPending() {
+    Object.keys(pending).forEach(function (k) {
+      var p = pending[k];
+      notify(p.phone, p.ts, p.event);
+    });
   }
 
   function poll() {
@@ -86,6 +111,7 @@
   }
 
   setInterval(poll, 3000);
+  setInterval(retryPending, 3000);
   setInterval(syncDirectory, 3000);
   poll();
 })();
