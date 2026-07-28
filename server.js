@@ -112,6 +112,35 @@ const WRITABLE_EMAIL_FIELDS = [
   'gmail_address', 'gmail_app_password', 'gmail_from_name',
 ];
 
+// Reads back the contact-form submissions stored by /api/contact. They were
+// written as a safety net against a failing email provider, but nothing could
+// read them, so the net was unreachable. Mirrors api/contact-messages.js.
+app.get('/api/contact-messages', async (req, res) => {
+  const auth = checkAdminKey(req);
+  if (!auth.ok) return res.status(401).json({ error: auth.error });
+  const limit = Math.min(parseInt(req.query.limit, 10) || 100, 500);
+  try {
+    const { data, error } = await supabase.from('kv_store').select('key,value').like('key', 'contact:%');
+    if (error) throw new Error(error.message);
+    const messages = [];
+    for (const row of data || []) {
+      let v;
+      try { v = JSON.parse(row.value); } catch { continue; }
+      messages.push({
+        key: row.key,
+        name: v.name || '', mobile: v.mobile || '', email: v.email || '',
+        subject: v.subject || '', brief: v.brief || '',
+        received_at: v.received_at || '', ip: v.ip || '',
+      });
+    }
+    // Newest first; the key embeds the ISO timestamp so it sorts reliably.
+    messages.sort((a, b) => (a.key < b.key ? 1 : a.key > b.key ? -1 : 0));
+    res.json({ count: messages.length, messages: messages.slice(0, limit) });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
 app.get('/api/email-settings', async (req, res) => {
   const auth = checkAdminKey(req);
   if (!auth.ok) return res.status(401).json({ error: auth.error });
