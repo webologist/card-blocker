@@ -55,13 +55,13 @@ function buildMessage(event, user, phone, ts) {
   const greeting = `Hi${user.name ? ' ' + user.name : ''},`;
   if (event === 'registered') {
     return {
-      subject: 'Your BlockMyCard account is ready',
+      subject: 'Welcome to BlockMyCard — your cards are saved',
       html: `<p>${greeting}</p><p>Your BlockMyCard account (${phone}) was created on ${ts}.</p><p>You can now save your card details so you can block them quickly if your wallet or phone is ever lost.</p>`,
       text: `Your BlockMyCard account (${phone}) was created on ${ts}. You can now save your card details so you can block them quickly if your wallet or phone is ever lost.`,
     };
   }
   return {
-    subject: 'New login to your BlockMyCard account',
+    subject: 'Security alert: new sign-in to BlockMyCard',
     html: `<p>${greeting}</p><p>Your BlockMyCard account (${phone}) was just logged into at ${ts}.</p><p>If this wasn't you, we recommend checking your saved cards and contact details right away.</p>`,
     text: `Your BlockMyCard account (${phone}) was just logged into at ${ts}. If this wasn't you, check your saved cards and contact details.`,
   };
