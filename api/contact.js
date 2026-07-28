@@ -71,7 +71,7 @@ export default async function handler(req, res) {
   // provider is not the sender's problem - report success either way.
   try {
     const cfg = await getSettings(supabase);
-    const to = contactRecipient(cfg);
+    const to = contactRecipient();
     if (cfg && cfg.active_provider && to) {
       await sendEmail(cfg, null, { to, ...buildContactEmail(data, receivedAt) });
     }

@@ -259,7 +259,7 @@ app.post('/api/contact', async (req, res) => {
   // Stored already, so a missing provider is not the sender's problem.
   try {
     const cfg = await getSettings(supabase);
-    const to = contactRecipient(cfg);
+    const to = contactRecipient();
     if (cfg && cfg.active_provider && to) {
       await sendEmail(cfg, null, Object.assign({ to }, buildContactEmail(data, receivedAt)));
     } else {
