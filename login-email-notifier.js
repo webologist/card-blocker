@@ -18,8 +18,11 @@
   // Signup logs "Registered" before the email address is collected, so the
   // first attempt often has nothing to send to. Those are retried until the
   // address appears; anything else is final.
+  // Retries are paced well inside the server's rate limit - hammering every
+  // few seconds just trips it, and a throttled reply carries no useful answer.
   var pending = {};          // key -> { phone, ts, event, tries }
-  var MAX_TRIES = 40;        // ~2 minutes at the 3s poll interval
+  var MAX_TRIES = 10;
+  var RETRY_MS = 15000;      // ~2.5 minutes of retries, ~10 calls
 
   function notify(phone, ts, event) {
     var key = phone + '|' + ts;
@@ -30,7 +33,9 @@
     }).then(function (r) {
       return r.json().catch(function () { return {}; });
     }).then(function (d) {
-      if (d && d.sent === false && d.reason === 'no-email') {
+      // "no-email" = the user hasn't reached the email screen yet.
+      // "rate-limited" = ask again shortly. Anything else is final.
+      if (d && d.sent === false && (d.reason === 'no-email' || d.reason === 'rate-limited')) {
         var p = pending[key] || { phone: phone, ts: ts, event: event, tries: 0 };
         p.tries++;
         if (p.tries >= MAX_TRIES) delete pending[key];
@@ -111,7 +116,7 @@
   }
 
   setInterval(poll, 3000);
-  setInterval(retryPending, 3000);
+  setInterval(retryPending, RETRY_MS);
   setInterval(syncDirectory, 3000);
   poll();
 })();

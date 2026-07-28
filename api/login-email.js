@@ -11,12 +11,17 @@ const { sendEmail } = require('../lib/email-providers');
 
 const ALLOWED_ORIGINS = ['https://card-blocker.vercel.app'];
 
+// Headroom matters here: a signup legitimately calls this several times while
+// waiting for the user to reach the email screen. Too tight a limit and the
+// retries throttle themselves before the address ever arrives. Abuse is really
+// bounded by the (phone, ts) claim - one email per login no matter what - so
+// this only needs to stop someone hammering with many distinct timestamps.
 const rateLimitMap = new Map();
 function isRateLimited(phone) {
   const now = Date.now();
-  const windowMs = 3 * 60 * 1000;
+  const windowMs = 5 * 60 * 1000;
   const hits = (rateLimitMap.get(phone) || []).filter((t) => now - t < windowMs);
-  if (hits.length >= 2) return true;
+  if (hits.length >= 15) return true;
   hits.push(now);
   rateLimitMap.set(phone, hits);
   return false;
@@ -74,8 +79,9 @@ export default async function handler(req, res) {
   const { phone, ts, event } = req.body || {};
   // Always answer {ok:true} on well-formed-but-uninteresting input so this
   // endpoint can't be used to probe which phone numbers exist.
-  if (!phone || !ts) return res.status(200).json({ ok: true });
-  if (isRateLimited(phone)) return res.status(200).json({ ok: true });
+  if (!phone || !ts) return res.status(200).json({ ok: true, sent: false, reason: 'bad-request' });
+  // Labelled so the caller can tell "try again shortly" apart from "give up".
+  if (isRateLimited(phone)) return res.status(200).json({ ok: true, sent: false, reason: 'rate-limited' });
 
   const supabase = supabaseClient();
   try {
