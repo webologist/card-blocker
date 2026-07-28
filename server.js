@@ -7,6 +7,7 @@ const { createClient } = require('@supabase/supabase-js');
 const { checkAdminKey } = require('./lib/admin-auth');
 const { getSettings, saveSettings, claimLoginEmail } = require('./lib/email-settings-store');
 const { sendEmail, maskSettings } = require('./lib/email-providers');
+const { validateContact, buildContactEmail, contactRecipient, storageKey } = require('./lib/contact');
 
 const app = express();
 app.use(cors());
@@ -216,6 +217,59 @@ app.post('/api/login-email', async (req, res) => {
     console.error('[login-email] error:', e.message);
     res.json({ ok: true });
   }
+});
+
+// ── Contact us widget (see api/contact.js for the Vercel copy) ──
+const contactRateLimit = new Map();
+function isContactRateLimited(ip) {
+  const now = Date.now();
+  const windowMs = 10 * 60 * 1000;
+  const hits = (contactRateLimit.get(ip) || []).filter((t) => now - t < windowMs);
+  if (hits.length >= 5) return true;
+  hits.push(now);
+  contactRateLimit.set(ip, hits);
+  return false;
+}
+
+app.post('/api/contact', async (req, res) => {
+  const body = req.body || {};
+  // Honeypot - answer as if it worked so a bot learns nothing.
+  if (body.website) return res.json({ ok: true });
+
+  // Limit before validating: the widget validates client-side, so anything
+  // reaching here malformed is a non-browser caller worth throttling too.
+  const ip = (req.headers['x-forwarded-for'] || '').split(',')[0].trim() || req.ip || 'unknown';
+  if (isContactRateLimited(ip)) {
+    return res.status(429).json({ ok: false, error: 'Too many messages sent. Please try again in a few minutes.' });
+  }
+
+  const { valid, errors, data } = validateContact(body);
+  if (!valid) return res.status(400).json({ ok: false, error: errors[0] });
+
+  const receivedAt = new Date().toISOString();
+  const { error } = await supabase.from('kv_store').upsert(
+    { key: storageKey(receivedAt), value: JSON.stringify(Object.assign({}, data, { received_at: receivedAt, ip })) },
+    { onConflict: 'key' }
+  );
+  if (error) {
+    console.error('[contact] store error:', error.message);
+    return res.status(500).json({ ok: false, error: 'Could not save your message.' });
+  }
+
+  // Stored already, so a missing provider is not the sender's problem.
+  try {
+    const cfg = await getSettings(supabase);
+    const to = contactRecipient(cfg);
+    if (cfg && cfg.active_provider && to) {
+      await sendEmail(cfg, null, Object.assign({ to }, buildContactEmail(data, receivedAt)));
+    } else {
+      console.log('[contact] stored but not emailed (no provider/recipient configured):', data.email);
+    }
+  } catch (e) {
+    console.error('[contact] email error:', e.message);
+  }
+
+  res.json({ ok: true });
 });
 
 // ── Inject storage bridge into index.html ──
