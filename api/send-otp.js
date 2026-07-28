@@ -12,17 +12,10 @@ function isRateLimited(phone) {
   return false;
 }
 
-async function signDummyToken(payload) {
-  const secret = process.env.OTP_SECRET || 'bmc-otp-secret-2026';
-  const data = JSON.stringify(payload);
-  const key = await crypto.subtle.importKey(
-    'raw', new TextEncoder().encode(secret),
-    { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']
-  );
-  const sig = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(data));
-  const sigHex = Array.from(new Uint8Array(sig)).map(b => b.toString(16).padStart(2, '0')).join('');
-  return Buffer.from(data).toString('base64') + '.' + sigHex;
-}
+// The challenge token used to carry the OTP in its (base64, readable) payload,
+// so the code came back in this endpoint's own response and the SMS was
+// decorative. It now carries a phone-bound HMAC of the code instead.
+const { issueOtpToken } = require('../lib/otp-token');
 
 // Server decision only, and never reachable on a production deployment for an
 // arbitrary number - see lib/otp-mode.js and the note in verify-otp.js.
@@ -62,7 +55,7 @@ export default async function handler(req, res) {
   const fullPhone = '+91' + digits;
 
   if (isDummyMode(fullPhone)) {
-    const token = await signDummyToken({
+    const token = await issueOtpToken({
       phone: fullPhone, otp: '1234',
       expiresAt: Date.now() + 5 * 60 * 1000, dummy: true,
     });
@@ -104,7 +97,7 @@ export default async function handler(req, res) {
 
   if (accountSid && authToken && fromPhone) {
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
-    const token = await signDummyToken({
+    const token = await issueOtpToken({
       phone: fullPhone, otp, expiresAt: Date.now() + 5 * 60 * 1000, dummy: false,
     });
     try {

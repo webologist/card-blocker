@@ -10,20 +10,11 @@ function isTokenUsed(token) {
   return true;
 }
 
-async function verifySignedToken(tokenStr) {
-  const secret = process.env.OTP_SECRET || 'bmc-otp-secret-2026';
-  const [b64, sig] = tokenStr.split('.');
-  if (!b64 || !sig) throw new Error('Malformed token');
-  const data = Buffer.from(b64, 'base64').toString();
-  const key = await crypto.subtle.importKey(
-    'raw', new TextEncoder().encode(secret),
-    { name: 'HMAC', hash: 'SHA-256' }, false, ['verify']
-  );
-  const sigBytes = new Uint8Array(sig.match(/.{2}/g).map(h => parseInt(h, 16)));
-  const valid = await crypto.subtle.verify('HMAC', key, sigBytes, new TextEncoder().encode(data));
-  if (!valid) throw new Error('Invalid signature');
-  return JSON.parse(data);
-}
+// The signature only ever proved the token had not been altered - it did not
+// stop anyone reading it, and the OTP was sitting in the payload. The code is
+// now stored as a phone-bound HMAC, so the token can be read all day without
+// revealing anything usable. See lib/otp-token.js.
+const { readOtpToken, otpMatches } = require('../lib/otp-token');
 
 // Dummy mode is a SERVER decision only. Honouring a client-supplied
 // `dummyMode` flag let any caller skip OTP verification entirely for any
@@ -100,11 +91,11 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'This OTP has already been used. Please request a new one.' });
   }
   let record;
-  try { record = await verifySignedToken(token); }
+  try { record = await readOtpToken(token); }
   catch { return res.status(401).json({ error: 'Invalid or tampered token. Please request a new OTP.' }); }
   if (record.phone !== fullPhone) return res.status(400).json({ error: 'Phone number mismatch.' });
   if (Date.now() > record.expiresAt) return res.status(400).json({ error: 'OTP has expired.' });
-  if (record.otp !== otp.toString().trim()) {
+  if (!(await otpMatches(record, otp))) {
     attemptMap.set(token, attempts + 1);
     const left = 4 - attempts;
     return res.status(400).json({ error: `Incorrect OTP. ${left} attempt${left === 1 ? '' : 's'} remaining.` });
