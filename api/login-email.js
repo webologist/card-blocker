@@ -28,6 +28,22 @@ function supabaseClient() {
   return createClient(url, key);
 }
 
+// Two places a user's email can live:
+//  - user_directory: written at OTP verification. The only source that works on
+//    production, where app data stays in the visitor's browser.
+//  - kv_store cbp:users: the app's own record. Real only in local dev, where
+//    server.js bridges window.storage to Supabase.
+// Directory wins; kv_store is the fallback so local dev keeps working.
+async function lookupUser(supabase, phone) {
+  const { data: dir } = await supabase
+    .from('user_directory').select('email, name').eq('phone', phone).maybeSingle();
+  if (dir && dir.email) return dir;
+
+  const { data } = await supabase.from('kv_store').select('value').eq('key', 'cbp:users').single();
+  if (!data) return null;
+  try { return JSON.parse(data.value)[phone] || null; } catch { return null; }
+}
+
 // Wording differs by event: a signup is expected and reassuring, a login on an
 // existing account is the one worth flagging as "wasn't you?".
 function buildMessage(event, user, phone, ts) {
@@ -69,10 +85,7 @@ export default async function handler(req, res) {
     const cfg = await getSettings(supabase);
     if (!cfg || !cfg.active_provider) return res.status(200).json({ ok: true });
 
-    const { data } = await supabase.from('kv_store').select('value').eq('key', 'cbp:users').single();
-    if (!data) return res.status(200).json({ ok: true });
-    const users = JSON.parse(data.value);
-    const user = users[phone];
+    const user = await lookupUser(supabase, phone);
     if (!user || !user.email) return res.status(200).json({ ok: true });
 
     await sendEmail(cfg, null, Object.assign({ to: user.email }, buildMessage(event, user, phone, ts)));

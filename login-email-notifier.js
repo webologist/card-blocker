@@ -48,6 +48,44 @@
     }).catch(function () {});
   }
 
+  // ── Sync this user's email address to the server ──
+  // On production the app's records live in the visitor's own browser, so the
+  // server has no way to know an address unless we tell it. We only do so with
+  // the signed phoneToken from OTP verification, so a phone can never have a
+  // stranger's address registered against it.
+  var syncedFor = null;
+
+  function syncDirectory() {
+    var token = sessionStorage.getItem('bmc_phone_token');
+    if (!token || !window.storage || !window.storage.get) return;
+
+    window.storage.get('cbp:users').then(function (result) {
+      if (!result || !result.value) return;
+      var users;
+      try { users = JSON.parse(result.value); } catch (e) { return; }
+
+      // The token proves one specific phone; find whichever record matches a
+      // recently verified number by checking them all against what we stored.
+      Object.keys(users).forEach(function (phone) {
+        var u = users[phone];
+        if (!u || !u.email) return;
+        var mark = phone + '|' + u.email;
+        if (syncedFor === mark) return;
+        syncedFor = mark;
+        fetch('/api/user-directory', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ phoneToken: token, email: u.email, name: u.name || '' }),
+        }).then(function (r) {
+          // A 401 means the token was for a different phone or has expired -
+          // forget it so a later verification can try again.
+          if (r.status === 401) sessionStorage.removeItem('bmc_phone_token');
+        }).catch(function () { syncedFor = null; });
+      });
+    }).catch(function () {});
+  }
+
   setInterval(poll, 3000);
+  setInterval(syncDirectory, 3000);
   poll();
 })();

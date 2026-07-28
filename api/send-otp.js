@@ -24,10 +24,9 @@ async function signDummyToken(payload) {
   return Buffer.from(data).toString('base64') + '.' + sigHex;
 }
 
-function isDummyMode(reqBody) {
-  if (process.env.OTP_MODE === 'dummy') return true;
-  if (reqBody?.dummyMode === true) return true;
-  return false;
+// Server decision only - see the note in verify-otp.js.
+function isDummyMode() {
+  return process.env.OTP_MODE === 'dummy';
 }
 
 const ALLOWED_ORIGINS = ['https://card-blocker.vercel.app'];
@@ -63,7 +62,7 @@ export default async function handler(req, res) {
 
   const fullPhone = '+91' + digits;
 
-  if (isDummyMode(req.body)) {
+  if (isDummyMode()) {
     const token = await signDummyToken({
       phone: fullPhone, otp: '1234',
       expiresAt: Date.now() + 5 * 60 * 1000, dummy: true,

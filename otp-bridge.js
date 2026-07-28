@@ -40,15 +40,15 @@ if(!btn){var skipBtn=[...document.querySelectorAll('#root button')].find(functio
       var entered=((otpInput&&otpInput.value)||'').replace(/[^0-9]/g,'');
       if(!/^[0-9]{4,6}$/.test(entered)){showError('Enter the OTP sent to your phone.');return;}
       var dummy2=getDummyMode();
-      if(dummy2){
-        if(entered==='1234'){sessionStorage.removeItem('bmc_token');sessionStorage.removeItem('bmc_phone');_pendingToken=null;_otpValue=entered;_allowVerify=true;clearInterval(_resendCountdown);var rb=document.getElementById('bmc-resend-btn');if(rb)rb.remove();btn.click();}else{showError('Incorrect OTP. In dummy mode, the code is 1234.');}
-        return;
-      }
+      // Verification always goes through the server now, dummy mode included.
+      // The old client-side shortcut skipped the API entirely, so it never
+      // received the signed phoneToken that proves this number was verified.
       if(!lastPhone){var d2=sanitisePhone((document.querySelector('input[type="tel"]')||{}).value);if(/^[6-9][0-9]{9}$/.test(d2))lastPhone='+91'+d2;}
       if(!_pendingToken){showError('OTP was not sent — please tap Send OTP first.');return;}
+      if(dummy2&&entered!=='1234'){showError('Incorrect OTP. In dummy mode, the code is 1234.');return;}
       hideError();btn.disabled=true;var orig2=btn.textContent;btn.textContent='Verifying...';
       fetchWT('/api/verify-otp',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({phone:lastPhone,otp:entered,token:_pendingToken,dummyMode:dummy2})})
-        .then(function(res){if(res.status===429){showError('Too many attempts.');btn.disabled=false;btn.textContent=orig2;return;}return safeJson(res).then(function(data){if(res.ok&&data&&data.success){sessionStorage.removeItem('bmc_token');sessionStorage.removeItem('bmc_phone');_pendingToken=null;_otpValue=entered;_allowVerify=true;clearInterval(_resendCountdown);var rb=document.getElementById('bmc-resend-btn');if(rb)rb.remove();btn.disabled=false;btn.textContent=orig2;btn.click();}else{showError((data&&data.error)||'Server error.');btn.disabled=false;btn.textContent=orig2;}});})
+        .then(function(res){if(res.status===429){showError('Too many attempts.');btn.disabled=false;btn.textContent=orig2;return;}return safeJson(res).then(function(data){if(res.ok&&data&&data.success){if(data.phoneToken)sessionStorage.setItem('bmc_phone_token',data.phoneToken);sessionStorage.removeItem('bmc_token');sessionStorage.removeItem('bmc_phone');_pendingToken=null;_otpValue=entered;_allowVerify=true;clearInterval(_resendCountdown);var rb=document.getElementById('bmc-resend-btn');if(rb)rb.remove();btn.disabled=false;btn.textContent=orig2;btn.click();}else{showError((data&&data.error)||'Server error.');btn.disabled=false;btn.textContent=orig2;}});})
         .catch(function(err){showError(err.name==='AbortError'?'Timed out.':'Verification failed.');btn.disabled=false;btn.textContent=orig2;});
     }
   },true);
