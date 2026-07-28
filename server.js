@@ -159,12 +159,13 @@ app.post('/api/email-settings/test', async (req, res) => {
   }
 });
 
+// See api/login-email.js - needs headroom for the signup retries.
 const loginEmailRateLimit = new Map();
 function isLoginEmailRateLimited(phone) {
   const now = Date.now();
-  const windowMs = 3 * 60 * 1000;
+  const windowMs = 5 * 60 * 1000;
   const hits = (loginEmailRateLimit.get(phone) || []).filter((t) => now - t < windowMs);
-  if (hits.length >= 2) return true;
+  if (hits.length >= 15) return true;
   hits.push(now);
   loginEmailRateLimit.set(phone, hits);
   return false;
@@ -190,8 +191,8 @@ function buildLoginEmailMessage(event, user, phone, ts) {
 
 app.post('/api/login-email', async (req, res) => {
   const { phone, ts, event } = req.body || {};
-  if (!phone || !ts) return res.json({ ok: true });
-  if (isLoginEmailRateLimited(phone)) return res.json({ ok: true });
+  if (!phone || !ts) return res.json({ ok: true, sent: false, reason: 'bad-request' });
+  if (isLoginEmailRateLimited(phone)) return res.json({ ok: true, sent: false, reason: 'rate-limited' });
   try {
     // See api/login-email.js - look up before claiming, so a signup whose email
     // has not been entered yet can still be retried once it is.
