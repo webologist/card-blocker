@@ -1,3 +1,5 @@
+const { issuePhoneToken } = require('../lib/phone-token');
+
 const attemptMap = new Map();
 const usedTokens = new Map();
 
@@ -23,10 +25,12 @@ async function verifySignedToken(tokenStr) {
   return JSON.parse(data);
 }
 
-function isDummyMode(reqBody) {
-  if (process.env.OTP_MODE === 'dummy') return true;
-  if (reqBody?.dummyMode === true) return true;
-  return false;
+// Dummy mode is a SERVER decision only. Honouring a client-supplied
+// `dummyMode` flag let any caller skip OTP verification entirely for any
+// phone number, which also made "the phone was OTP-verified" worthless as a
+// trust signal for anything built on top of it.
+function isDummyMode() {
+  return process.env.OTP_MODE === 'dummy';
 }
 
 const ALLOWED_ORIGINS = ['https://card-blocker.vercel.app'];
@@ -48,8 +52,10 @@ export default async function handler(req, res) {
   const digits = phone.replace(/\D/g, '').replace(/^91/, '');
   const fullPhone = '+91' + digits;
 
-  if (isDummyMode(req.body)) {
-    if (otp.toString().trim() === '1234') return res.status(200).json({ success: true });
+  if (isDummyMode()) {
+    if (otp.toString().trim() === '1234') {
+      return res.status(200).json({ success: true, phoneToken: await issuePhoneToken(fullPhone) });
+    }
     return res.status(400).json({ error: 'Incorrect OTP. Hint: dummy OTP is 1234.' });
   }
 
@@ -73,7 +79,9 @@ export default async function handler(req, res) {
         }
       );
       const data = await checkRes.json();
-      if (data.status === 'approved') return res.status(200).json({ success: true });
+      if (data.status === 'approved') {
+        return res.status(200).json({ success: true, phoneToken: await issuePhoneToken(fullPhone) });
+      }
       return res.status(400).json({ error: 'Incorrect OTP. Please try again.' });
     } catch (err) {
       console.error('[OTP] Verify check error:', err);
@@ -100,5 +108,5 @@ export default async function handler(req, res) {
   }
   attemptMap.delete(token);
   usedTokens.set(token, record.expiresAt);
-  return res.status(200).json({ success: true });
+  return res.status(200).json({ success: true, phoneToken: await issuePhoneToken(fullPhone) });
 }

@@ -59,8 +59,10 @@ app.get('/api/storage/list', async (req, res) => {
 
 // ── OTP routes ──
 app.post('/api/send-otp', async (req, res) => {
-  const { phone, dummyMode } = req.body;
-  const isDummy = dummyMode || process.env.OTP_MODE === 'dummy';
+  const { phone } = req.body;
+  // Server decision only - a client-supplied dummyMode let any caller skip
+  // OTP verification for any phone number.
+  const isDummy = process.env.OTP_MODE === 'dummy';
   if (isDummy) {
     const token = 'dummy-' + Date.now();
     await supabase.from('kv_store').upsert(
