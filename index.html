@@ -1406,6 +1406,11 @@ function _styleAppImpl() {
     sec.querySelectorAll('button').forEach(btn => {
       const cls = btn.className || '';
       const txt = (btn.textContent || '').trim();
+      // The logout-bar proxy sits inside this container but owns its own styling
+      // below. Without this guard the txt === 'Log out' branch repainted it
+      // white — readable on the dark header it was written for, invisible on
+      // the light card it actually lives on.
+      if (cls.includes('__bmc_proxy_btn')) return;
       if (cls.includes('bg-red-700')) {
         Object.assign(btn.style, {background:RED, fontWeight:'700', borderRadius:'8px', color:'#fff', border:'none', cursor:'pointer', padding:'.35rem .9rem', fontSize:'.82rem', display:'inline-flex', alignItems:'center', gap:'.3rem'});
         btn.onmouseenter = () => btn.style.background = RED_DARK;
@@ -1536,6 +1541,7 @@ function _styleAppImpl() {
         const proxyBtn = bar.querySelector('.__bmc_proxy_btn');
         if (proxyBtn) {
           proxyBtn.textContent = label;
+          proxyBtn.style.color = RED;
           proxyBtn.onclick = () =>
             origBtn.dispatchEvent(new MouseEvent('click', {bubbles:true, cancelable:true, view:window}));
         }
