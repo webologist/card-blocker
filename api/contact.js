@@ -1,5 +1,7 @@
 // api/contact.js
-// Receives submissions from the "Contact us" widget (contact-widget.js).
+// Receives contact-form submissions. The front-end "Contact us" widget that
+// used to post here has been removed; the endpoint is kept for the stored
+// history and any future form.
 // Every message is stored in kv_store under a contact:<ts> key so nothing is
 // lost, and is then emailed on to the support inbox through whichever provider
 // the admin has connected in Email Integrations. Storing first is deliberate:
