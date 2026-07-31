@@ -26,10 +26,21 @@
 
   function notify(phone, ts, event) {
     var key = phone + '|' + ts;
+    // The server will not mail anyone on an unproven claim: without the signed
+    // token from OTP verification, "phone X just logged in" is something any
+    // caller could assert about any number. Nothing to send yet is not a
+    // failure - keep it pending so a retry after verification can carry one.
+    var token = sessionStorage.getItem('bmc_phone_token');
+    if (!token) {
+      var q = pending[key] || { phone: phone, ts: ts, event: event, tries: 0 };
+      q.tries++;
+      if (q.tries >= MAX_TRIES) delete pending[key]; else pending[key] = q;
+      return;
+    }
     fetch('/api/login-email', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ phone: phone, ts: ts, event: event }),
+      body: JSON.stringify({ phone: phone, ts: ts, event: event, phoneToken: token }),
     }).then(function (r) {
       return r.json().catch(function () { return {}; });
     }).then(function (d) {

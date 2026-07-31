@@ -8,6 +8,7 @@
 const { createClient } = require('@supabase/supabase-js');
 const { getSettings, claimLoginEmail } = require('../lib/email-settings-store');
 const { sendEmail } = require('../lib/email-providers');
+const { verifyPhoneToken } = require('../lib/phone-token');
 
 const ALLOWED_ORIGINS = ['https://card-blocker.vercel.app'];
 
@@ -76,10 +77,20 @@ export default async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-  const { phone, ts, event } = req.body || {};
+  const { phone, ts, event, phoneToken } = req.body || {};
   // Always answer {ok:true} on well-formed-but-uninteresting input so this
   // endpoint can't be used to probe which phone numbers exist.
   if (!phone || !ts) return res.status(200).json({ ok: true, sent: false, reason: 'bad-request' });
+
+  // Proof that the caller just passed OTP for this number. Without it, the
+  // body alone decided whose inbox got a "Security alert: new sign-in" mail:
+  // anyone who knew a registered number could send a stream of them by varying
+  // `ts`, and could tell registered numbers from unregistered ones by whether
+  // the reply said "sent" or "no-email". The claim now has to be signed.
+  const verified = await verifyPhoneToken(phoneToken);
+  if (!verified || verified.replace(/\D/g, '').replace(/^91/, '') !== String(phone).replace(/\D/g, '').replace(/^91/, '')) {
+    return res.status(200).json({ ok: true, sent: false, reason: 'unverified' });
+  }
   // Labelled so the caller can tell "try again shortly" apart from "give up".
   if (isRateLimited(phone)) return res.status(200).json({ ok: true, sent: false, reason: 'rate-limited' });
 

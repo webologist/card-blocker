@@ -1,6 +1,6 @@
 // otp-bridge.js
 (function () {
-  var lastPhone=sessionStorage.getItem('bmc_phone')||'',_pendingToken=sessionStorage.getItem('bmc_token')||null,_allowVerify=false,_otpValue=null,_toastTimer=null,_resendCountdown=null,_otpRequestId=0;
+  var lastPhone=sessionStorage.getItem('bmc_phone')||'',_pendingToken=sessionStorage.getItem('bmc_token')||null,_allowVerify=false,_otpValue=null,_toastTimer=null,_resendCountdown=null,_otpRequestId=0,_otpPurpose='login';
   Object.defineProperty(window,'__bmc_otp',{get:function(){return _otpValue;},set:function(v){_otpValue=v;},enumerable:false,configurable:true});
   function loadAdminToggle(){if(document.querySelector('script[src*="admin-otp-toggle"]'))return;var s=document.createElement('script');s.src='/admin-otp-toggle.js';s.async=true;document.head.appendChild(s);}
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',loadAdminToggle);else loadAdminToggle();
@@ -19,13 +19,63 @@
 // the app's own button - that is what clears the stored session.
 var live=findLogoutButton();if(live)live.click();else location.reload();};}}
   setInterval(fixLogoutButton,500);
-  function injectResendButton(){var otpInput=document.querySelector('input[maxlength="6"]');if(!otpInput){return;}var existing=document.getElementById('bmc-resend-btn');if(existing&&existing.dataset.reqId===String(_otpRequestId))return;if(existing)existing.remove();var rb=document.createElement('button');rb.id='bmc-resend-btn';rb.dataset.reqId=String(_otpRequestId);rb.disabled=true;var secs=60;rb.textContent='Resend OTP in '+secs+'s';rb.style.cssText='margin-top:.75rem;display:block;width:100%;background:none;border:1px solid #cbd5e1;color:#94a3b8;border-radius:.375rem;padding:.5rem 1rem;font-size:.875rem;font-family:ui-sans-serif,system-ui,sans-serif;cursor:default;';var container=otpInput.closest('div')||otpInput.parentElement;container.insertAdjacentElement('afterend',rb);clearInterval(_resendCountdown);_resendCountdown=setInterval(function(){secs--;var b=document.getElementById('bmc-resend-btn');if(!b){clearInterval(_resendCountdown);return;}if(secs<=0){clearInterval(_resendCountdown);b.disabled=false;b.textContent='Resend OTP';b.style.color='#d63a2a';b.style.borderColor='#d63a2a';b.style.cursor='pointer';b.onclick=function(){var dummy=getDummyMode();if(dummy){_pendingToken='dummy-mode';sessionStorage.setItem('bmc_token','dummy-mode');_otpRequestId++;showError('OTP resent! Enter 1234 as the OTP.');return;}fetchWT('/api/send-otp',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({phone:lastPhone,dummyMode:dummy})}).then(function(res){return safeJson(res);}).then(function(data){if(data&&data.token){_pendingToken=data.token;sessionStorage.setItem('bmc_token',_pendingToken);_otpRequestId++;showError('New OTP sent to your phone.');}}).catch(function(){});};} else{b.textContent='Resend OTP in '+secs+'s';}},1000);}
+  // Torn down as soon as the OTP screen goes away. It used to just bail when
+  // the input was gone, so the button - and its ticking countdown - stayed
+  // welded to whatever screen came next: "Resend OTP in 15s" sitting under the
+  // dashboard, resending an OTP for a login that had already finished.
+  function removeResendButton(){clearInterval(_resendCountdown);_resendCountdown=null;var b=document.getElementById('bmc-resend-btn');if(b)b.remove();}
+  function injectResendButton(){var otpInput=document.querySelector('input[maxlength="6"]');if(!otpInput){removeResendButton();return;}var existing=document.getElementById('bmc-resend-btn');if(existing&&existing.dataset.reqId===String(_otpRequestId))return;if(existing)existing.remove();var rb=document.createElement('button');rb.id='bmc-resend-btn';rb.dataset.reqId=String(_otpRequestId);rb.disabled=true;var secs=60;rb.textContent='Resend OTP in '+secs+'s';rb.style.cssText='margin-top:.75rem;display:block;width:100%;background:none;border:1px solid #cbd5e1;color:#94a3b8;border-radius:.375rem;padding:.5rem 1rem;font-size:.875rem;font-family:ui-sans-serif,system-ui,sans-serif;cursor:default;';var container=otpInput.closest('div')||otpInput.parentElement;container.insertAdjacentElement('afterend',rb);clearInterval(_resendCountdown);_resendCountdown=setInterval(function(){secs--;var b=document.getElementById('bmc-resend-btn');if(!b){clearInterval(_resendCountdown);return;}if(secs<=0){clearInterval(_resendCountdown);b.disabled=false;b.textContent='Resend OTP';b.style.color='#d63a2a';b.style.borderColor='#d63a2a';b.style.cursor='pointer';b.onclick=function(){var again=sanitisePhone(lastPhone);if(!/^[6-9][0-9]{9}$/.test(again))return;requestOtpFor(again,null,{purpose:_otpPurpose,sentMsg:'New OTP sent to your phone.'});};} else{b.textContent='Resend OTP in '+secs+'s';}},1000);}
   setInterval(injectResendButton,600);
   function showError(msg){clearTimeout(_toastTimer);var t=document.getElementById('bmc-otp-toast');if(!t){t=document.createElement('div');t.id='bmc-otp-toast';t.style.cssText='position:fixed;bottom:1.5rem;left:50%;transform:translateX(-50%);z-index:10001;width:min(420px,calc(100vw - 2rem));background:#fef2f2;border:1.5px solid #fecaca;border-radius:10px;padding:.75rem 2.75rem .75rem 1rem;font-size:.875rem;color:#b91c1c;box-shadow:0 8px 24px rgba(0,0,0,.2);line-height:1.5;word-break:break-word;';var x=document.createElement('button');x.textContent='x';x.style.cssText='position:absolute;top:.5rem;right:.65rem;background:none;border:none;cursor:pointer;color:#b91c1c;font-size:.9rem;';x.onclick=hideError;t.appendChild(x);document.body.appendChild(t);}var x2=t.querySelector('button');Array.from(t.childNodes).forEach(function(n){if(n!==x2)t.removeChild(n);});t.insertBefore(document.createTextNode(msg),x2);t.style.display='block';_toastTimer=setTimeout(hideError,10000);}
   function hideError(){clearTimeout(_toastTimer);var t=document.getElementById('bmc-otp-toast');if(t)t.style.display='none';}
   function fetchWT(url,opts){var ctrl=new AbortController();var timer=setTimeout(function(){ctrl.abort();},30000);return fetch(url,Object.assign({},opts,{signal:ctrl.signal})).then(function(r){clearTimeout(timer);return r;}).catch(function(e){clearTimeout(timer);throw e;});}
   function safeJson(r){return r.json().catch(function(){return null;});}
   function sanitisePhone(raw){if(!raw||raw.length>20)return'';var d=String(raw).replace(/[^0-9]/g,'');if(d.length===12&&d.slice(0,2)==='91')d=d.slice(2);if(d[0]==='0'&&d.length>=11)d=d.slice(1);return d;}
+  // Every OTP the app can ask for is sent from here, so the challenge token
+  // always belongs to the number actually on the OTP screen. It used to be
+  // inlined in the "Send OTP" branch below, which meant the only number that
+  // could ever be verified was the one typed on the login screen.
+  //   btn  - button to show progress on, or null when the click navigates away
+  //          and React is about to unmount it.
+  //   opts - {purpose:'login'|'altPhone', sentMsg:string}
+  function requestOtpFor(digits,btn,opts){
+    opts=opts||{};hideError();
+    _otpPurpose=opts.purpose||'login';
+    lastPhone='+91'+digits;sessionStorage.setItem('bmc_phone',lastPhone);
+    _pendingToken=null;sessionStorage.removeItem('bmc_token');_otpValue=null;
+    var dummy=getDummyMode(),orig=btn?btn.textContent:'';
+    var reset=function(){if(btn){btn.disabled=false;btn.textContent=orig;}};
+    // Dummy mode used to short-circuit here with a placeholder token and never
+    // call the server, so the client decided what "dummy" meant. The server
+    // decides now (lib/otp-mode.js), and it has to see a send for every verify
+    // - that request is where the 3-per-10-minutes limit lives, and where the
+    // challenge this number will be verified against is issued.
+    if(btn){btn.disabled=true;btn.textContent='Sending...';}
+    fetchWT('/api/send-otp',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({phone:lastPhone,dummyMode:dummy})})
+      .then(function(res){
+        if(res.status===429){showError('Too many OTP requests. Please wait 10 minutes.');reset();return;}
+        return safeJson(res).then(function(data){
+          // Refusals the server can be specific about are worth repeating
+          // verbatim - "this number isn't whitelisted on our trial account"
+          // is one an alternate number runs into far more often than the
+          // login number does, and "try again" is useless advice for it.
+          if(!res.ok||!data||!data.token){showError((data&&data.error)||'Could not send OTP. Please try again.');reset();return;}
+          _pendingToken=data.token;sessionStorage.setItem('bmc_token',_pendingToken);_otpRequestId++;
+          if(opts.sentMsg)showError(opts.sentMsg);
+          if(btn){btn.textContent='OTP sent';setTimeout(function(){btn.textContent=orig;btn.disabled=false;},60000);}
+        });
+      })
+      .catch(function(err){showError(err.name==='AbortError'?'Request timed out. Check your signal.':'No connection. Please check your signal.');reset();});
+  }
+  // The number the alternate-number screens are about to submit. Looked for
+  // near the button first - the dashboard renders its edit field as a sibling,
+  // and both screens use a 10-digit tel input, which nothing else on those
+  // screens does (card fields are 4).
+  function findAltPhoneInput(btn){
+    var sel='input[type="tel"][maxlength="10"]',node=btn;
+    for(var i=0;i<6&&node;i++){var hit=node.querySelector&&node.querySelector(sel);if(hit)return hit;node=node.parentElement;}
+    return document.querySelector('#root '+sel);
+  }
   document.addEventListener('click',function(e){
     var btn=e.target.closest('button');if(!btn)return;
     var text=(btn.textContent||'').trim();
@@ -37,13 +87,23 @@ var live=findLogoutButton();if(live)live.click();else location.reload();};}}
       // should not depend on that.
       var digits=sanitisePhone((document.querySelector('#root input[type="tel"]')||{}).value);
       if(!/^[6-9][0-9]{9}$/.test(digits)){showError('Enter a valid 10-digit Indian mobile number (starting with 6-9).');return;}
-      hideError();lastPhone='+91'+digits;sessionStorage.setItem('bmc_phone',lastPhone);_pendingToken=null;sessionStorage.removeItem('bmc_token');_otpValue=null;
-      btn.disabled=true;var orig=btn.textContent;btn.textContent='Sending...';
-      var dummy=getDummyMode();
-      if(dummy){_pendingToken='dummy-mode';sessionStorage.setItem('bmc_token','dummy-mode');_otpRequestId++;btn.disabled=false;btn.textContent=orig;return;}
-      fetchWT('/api/send-otp',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({phone:lastPhone,dummyMode:dummy})})
-        .then(function(res){if(res.status===429){showError('Too many OTP requests. Please wait 10 minutes.');btn.disabled=false;btn.textContent=orig;return;}if(!res.ok){showError('Could not send OTP. Please try again.');btn.disabled=false;btn.textContent=orig;return;}return safeJson(res).then(function(data){if(!data||!data.token){showError((data&&data.error)||'Could not send OTP. Please try again.');btn.disabled=false;btn.textContent=orig;return;}_pendingToken=data.token;sessionStorage.setItem('bmc_token',_pendingToken);_otpRequestId++;btn.textContent=dummy?'OTP sent (use 1234)':'OTP sent';if(dummy)showError('Dummy mode - enter 1234 as the OTP.');setTimeout(function(){btn.textContent='Send OTP';btn.disabled=false;},60000);});})
-        .catch(function(err){showError(err.name==='AbortError'?'Request timed out. Check your signal.':'No connection. Please check your signal.');btn.disabled=false;btn.textContent=orig;});
+      requestOtpFor(digits,btn,{purpose:'login'});
+    }
+    // The alternate-number screens - "Save & verify alternate number" at the
+    // end of registration, "Save & verify" on the dashboard - ask the app for
+    // an OTP directly, and its requestOtp only switches to the OTP screen. No
+    // "Send OTP" button is ever clicked, so nothing above ran: the screen
+    // announced a code that was never sent, and Verify OTP then refused
+    // because there was no challenge token for that number. The alternate
+    // number could not be verified at all, which is not cosmetic - a verified
+    // alternate is what lets that number reach the account.
+    if(text==='Save & verify alternate number'||text==='Save & verify'){
+      var altInput=findAltPhoneInput(btn);
+      var altDigits=sanitisePhone(altInput&&altInput.value);
+      // A bad number is the app's own error to report - it validates the same
+      // way and stays put - so don't send, and don't interfere either.
+      if(!/^[6-9][0-9]{9}$/.test(altDigits))return;
+      requestOtpFor(altDigits,null,{purpose:'altPhone'});
     }
     if(text==='Verify OTP'){
       if(_allowVerify){_allowVerify=false;return;}
@@ -58,21 +118,53 @@ var live=findLogoutButton();if(live)live.click();else location.reload();};}}
       // #root-scoped for the same reason as the Send OTP branch above.
       if(!lastPhone){var d2=sanitisePhone((document.querySelector('#root input[type="tel"]')||{}).value);if(/^[6-9][0-9]{9}$/.test(d2))lastPhone='+91'+d2;}
       if(!_pendingToken){showError('OTP was not sent — please tap Send OTP first.');return;}
-      if(dummy2&&entered!=='1234'){showError('Incorrect OTP. In dummy mode, the code is 1234.');return;}
+      // No client-side verdict on the code. The banner is a local admin
+      // toggle; the server is the only thing that knows whether this
+      // deployment is really in dummy mode, and announcing "the code is 1234"
+      // from here was wrong whenever the two disagreed.
       hideError();btn.disabled=true;var orig2=btn.textContent;btn.textContent='Verifying...';
       fetchWT('/api/verify-otp',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({phone:lastPhone,otp:entered,token:_pendingToken,dummyMode:dummy2})})
-        .then(function(res){if(res.status===429){showError('Too many attempts.');btn.disabled=false;btn.textContent=orig2;return;}return safeJson(res).then(function(data){if(res.ok&&data&&data.success){if(data.phoneToken)sessionStorage.setItem('bmc_phone_token',data.phoneToken);sessionStorage.removeItem('bmc_token');sessionStorage.removeItem('bmc_phone');_pendingToken=null;_otpValue=entered;_allowVerify=true;clearInterval(_resendCountdown);var rb=document.getElementById('bmc-resend-btn');if(rb)rb.remove();btn.disabled=false;btn.textContent=orig2;btn.click();}else{showError((data&&data.error)||'Server error.');btn.disabled=false;btn.textContent=orig2;}});})
+        .then(function(res){if(res.status===429){showError('Too many attempts.');btn.disabled=false;btn.textContent=orig2;return;}return safeJson(res).then(function(data){if(res.ok&&data&&data.success){
+          // The stored token stands for "this session's own number". Verifying
+          // an alternate contact proves a different number entirely, so it must
+          // not overwrite that - otherwise the rest of the session would go on
+          // identifying itself as the family member whose number was just added.
+          if(data.phoneToken&&_otpPurpose!=='altPhone')sessionStorage.setItem('bmc_phone_token',data.phoneToken);sessionStorage.removeItem('bmc_token');sessionStorage.removeItem('bmc_phone');_pendingToken=null;_otpValue=entered;_allowVerify=true;removeResendButton();
+          // The toast is the only place a failed attempt is reported, and it
+          // lingers for ten seconds. Without this, a user who mistypes once
+          // and then gets it right lands on the dashboard still being told
+          // the OTP was wrong.
+          hideError();btn.disabled=false;btn.textContent=orig2;btn.click();}else{showError((data&&data.error)||'Server error.');btn.disabled=false;btn.textContent=orig2;}});})
         .catch(function(err){showError(err.name==='AbortError'?'Timed out.':'Verification failed.');btn.disabled=false;btn.textContent=orig2;});
     }
   },true);
 
   var _quickLoginInjected=false;
+  // The login screen, and nothing else. "A tel input exists" was the old test,
+  // which is also true of the registration contact screen and the dashboard's
+  // alternate-number editor - so the panel appeared there too, and because it
+  // anchors itself to the nearest <section> it landed above the header. The
+  // "Send OTP" button belongs to the login form alone.
+  function isLoginScreen(){
+    // Matches the in-flight labels too - this file relabels the button to
+    // "Sending..." / "OTP sent" for a minute after a click, and the panel
+    // should not blink out of existence while that is showing.
+    return [].slice.call(document.querySelectorAll('#root button')).some(function(b){
+      var t=b.textContent.trim();return t==='Send OTP'||t==='Sending...'||t==='OTP sent';
+    });
+  }
   function injectQuickLogin(){
     var phoneInput=document.querySelector('#root input[type="tel"]');
     var otpInput=document.querySelector('#root input[maxlength="6"]');
-    if(!phoneInput||otpInput){_quickLoginInjected=false;return;}
+    if(!phoneInput||otpInput||!isLoginScreen()){
+      _quickLoginInjected=false;
+      var stale=document.getElementById('bmc-quick-login');if(stale)stale.remove();
+      return;
+    }
     if(document.getElementById('bmc-quick-login'))return;
     window.storage.get('cbp:users').then(function(result){
+      // The read is async; the screen may have moved on while it was in flight.
+      if(!isLoginScreen()||document.getElementById('bmc-quick-login'))return;
       if(!result||!result.value)return;
       var users;try{users=JSON.parse(result.value);}catch(e){return;}
       var accounts=Object.values(users).filter(function(u){return u.paid&&u.saved&&u.phone&&u.cards&&u.cards.length>0;});

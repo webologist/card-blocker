@@ -25,7 +25,7 @@ const { readOtpToken, otpMatches } = require('../lib/otp-token');
 // set on production, so "1234" verified ANY number and minted a real
 // phoneToken for it. lib/otp-mode.js now refuses that on a production
 // deployment unless the number is explicitly listed in OTP_DUMMY_NUMBERS.
-const { isDummyMode } = require('../lib/otp-mode');
+const { isDummyMode, isProductionDeployment } = require('../lib/otp-mode');
 
 const ALLOWED_ORIGINS = ['https://card-blocker.vercel.app'];
 
@@ -47,10 +47,34 @@ export default async function handler(req, res) {
   const fullPhone = '+91' + digits;
 
   if (isDummyMode(fullPhone)) {
+    // A dummy code still has to answer a challenge THIS server issued for THIS
+    // number. Without that check the endpoint minted a phone token for any
+    // number from a request that had never been anywhere near send-otp, so the
+    // 3-per-10-minutes limit there bounded nothing: no send, no throttle, no
+    // Twilio, just tokens on demand for arbitrary numbers.
+    let challenge;
+    try { challenge = await readOtpToken(token); }
+    catch { return res.status(400).json({ error: 'Please tap Send OTP first.' }); }
+    if (!challenge.dummy || challenge.phone !== fullPhone) return res.status(400).json({ error: 'Phone number mismatch.' });
+    if (Date.now() > challenge.expiresAt) return res.status(400).json({ error: 'OTP has expired.' });
+
+    const dummyAttempts = attemptMap.get(token) || 0;
+    if (dummyAttempts >= 5) return res.status(429).json({ error: 'Too many incorrect attempts. Please request a new OTP.' });
+
     if (otp.toString().trim() === '1234') {
+      attemptMap.delete(token);
       return res.status(200).json({ success: true, phoneToken: await issuePhoneToken(fullPhone) });
     }
-    return res.status(400).json({ error: 'Incorrect OTP. Hint: dummy OTP is 1234.' });
+    attemptMap.set(token, dummyAttempts + 1);
+    // The hint is a development affordance. On a production deployment it was
+    // handing every visitor the master code in a toast - dummy mode is open
+    // here deliberately (see lib/otp-mode.js), but that is a reason to stop
+    // advertising it, not to advertise it louder.
+    return res.status(400).json({
+      error: isProductionDeployment()
+        ? 'Incorrect OTP. Please try again.'
+        : 'Incorrect OTP. Hint: dummy OTP is 1234.',
+    });
   }
 
   if (token.startsWith('verify:')) {
