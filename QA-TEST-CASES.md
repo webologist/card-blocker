@@ -24,14 +24,25 @@ Seven role groups:
 | R2 | New User (Registration & Onboarding) | First-time signup through OTP | 26 |
 | R3 | Registered User — Free tier | Signed in, chose not to save cards | 12 |
 | R4 | Registered User — Paid tier | Signed in, ₹50/card, cards saved | 23 |
-| R5 | Alternate / Family Contact | Signed in on behalf of the account owner | 13 |
+| R5 | Alternate / Family Contact | Signed in on behalf of the account owner | 20 |
 | R6 | Admin | Operator of the in-app admin console | 18 |
 | R7 | Unauthenticated API Client | The attacker surface; no UI involved | 21 |
-| | | **Total** | **135** |
+| | | **Total** | **142** |
 
-Of these, **78 carry a recorded result** — executed against the live site, against
+Of these, **87 carry a recorded result** — executed against the live site, against
 the local harness, or by code inspection where the row says so. The remaining
-**57** are specified for the automation backlog and marked `📋 Not executed`.
+**55** are specified for the automation backlog and marked `📋 Not executed`.
+
+### Negative-path note
+
+The heaviest cluster of defects in this suite is in R5, and every one of them is
+a **negative** path — the alternate-number login with an input the flow did not
+expect. The happy path works. What was never handled is *refusal*: the code has
+a branch for "this number belongs to an account" and a branch for "this is a new
+user", and nothing in between. Every unrecognised alternate fell into the
+new-user branch, including numbers that already had accounts. Cases ALT-LOG-05
+through ALT-LOG-08 exist because of that shape and are worth carrying forward as
+a regression set.
 
 ### Architecture facts that shape the suite
 
@@ -90,6 +101,10 @@ Severity is business impact, not code size.
 | BUG-05 | **High** | `verify-otp`'s dummy branch answered before validating the challenge token, so a request that had never touched `send-otp` still minted a `phoneToken` for any number. The 3-per-10-min send limit bounded nothing. | 🔧 Fixed, retested |
 | BUG-06 | **High** | Wrong-OTP response told every visitor `Hint: dummy OTP is 1234`. | 🔧 Fixed, retested |
 | BUG-07 | **High** | `/api/login-email` was unauthenticated and trusted the request body. Anyone knowing a registered number could send repeated "Security alert: new sign-in" mails to that user by varying `ts`, and could distinguish registered from unregistered numbers by the reply (`sent` vs `no-email`). | 🔧 Fixed, retested |
+| BUG-19 | **Blocker** | Signing in with your **own registered number** but the *Alternate* toggle selected **destroys the account**. `hv()` looks the number up by `altPhone` only, finds nothing, and falls through to the new-user branch, which writes `{...u,[phone]:{name:"",cards:[],paid:false,email:"",altPhone:""}}` straight over the existing record. Verified: a paid account lost its name, email, saved card, paid flag and verified alternate. No warning, no confirmation, no undo — one mistap on a two-button toggle. | 🔧 Fixed, retested |
+| BUG-20 | **High** | Signing in as *Alternate* with a number nobody nominated silently **registers it as a new own account** — logs "Registered", fires the welcome SMS and WhatsApp. The user stated the number belongs to someone else and the app made them an account holder, with no message explaining the number isn't linked to anyone. | 🔧 Fixed, retested |
+| BUG-21 | **High** | `altVerified` was never checked at login — `hv()` matched on `altPhone` alone. Since the admin console writes `altPhone` as a plain text field with no OTP, any number typed there became a working key to that account. `lib/storage-policy.js` requires `altVerified` for the same decision server-side; the client that actually runs disagreed with it. | 🔧 Fixed, retested |
+| BUG-22 | Medium | When two accounts nominate the **same** alternate number, `Object.values(u).find(...)` returns the first match only. Verified: the alternate lands on Parent One and Parent Two's cards are unreachable, with no picker and no indication a second account exists. This is precisely the "keep a parent's card list alongside yours" scenario on the landing page. | Open — needs an account-picker UI |
 | BUG-08 | Medium | The alternate contact has full write access: they can delete the owner's saved cards and change the account email (which redirects all notifications). Only the alternate-number field is locked. | Open — permission model decision |
 | BUG-09 | Medium | A `Resend OTP in Ns` countdown injected on the OTP screen was never removed, and kept ticking under the register screen and dashboard. | 🔧 Fixed, retested |
 | BUG-10 | Medium | The Quick-login panel keyed off "a `tel` input exists", so it rendered on the contact screen and dashboard — anchored above the page header. | 🔧 Fixed, retested |
@@ -104,10 +119,19 @@ Severity is business impact, not code size.
 
 ### What was fixed and verified
 
-Commit `40adc7e` on `fix/session-survives-refresh` — BUG-02, 05, 06, 07, 09, 10, 11.
-Files: `otp-bridge.js`, `api/verify-otp.js`, `api/login-email.js`, `login-email-notifier.js`.
-Retested in-browser against a local harness that loads the real `lib/otp-token.js`,
-`lib/otp-mode.js` and `lib/phone-token.js` with `VERCEL_ENV=production`.
+BUG-02, 05, 06, 07, 09, 10, 11 — `otp-bridge.js`, `api/verify-otp.js`,
+`api/login-email.js`, `login-email-notifier.js`.
+BUG-19, 20, 21 — `app.js`, in the `hv()` lookup and the login branch it feeds.
+
+All on `fix/session-survives-refresh`. Retested in-browser against a local
+harness that loads the real `lib/otp-token.js`, `lib/otp-mode.js` and
+`lib/phone-token.js` with `VERCEL_ENV=production`.
+
+The `app.js` change is a hand-patch to a minified bundle with no source in the
+repo — the same way the file has already been maintained (`bmcSession`,
+`setPhoneDraft` and other readable identifiers in it are earlier hand-patches).
+If a build pipeline for it is ever restored, these three fixes must be carried
+into the source or they will be overwritten.
 
 **The fixes are committed but not deployed.** They reach users only when the
 branch is merged and Vercel redeploys.
@@ -250,7 +274,7 @@ harness.
 | ALT-VER-02 | Verify from the dashboard | Contact details → Edit alternate → "Save & verify" → `1234` | Marked "✓ verified" | 🔧 Pass after fix (❌ on production) |
 | ALT-VER-03 | Bad alternate number is refused | Enter `1234567890` | App's own inline validation fires; no OTP requested | 🔧 Pass after fix |
 | ALT-VER-04 | **Alternate verification must not overwrite the session identity** | Verify an alternate, then inspect `bmc_phone_token` | Token still proves the *owner's* number, not the alternate's | 🔧 Pass — decodes to `+919811100011` (owner), alternate was `9822200022` |
-| ALT-VER-05 | Unverified alternate grants nothing | Set an alternate but abandon the OTP; try to sign in on it | Refused | 📋 Not executed |
+| ALT-VER-05 | **Unverified alternate grants nothing** | Seed an account with `altPhone` set and `altVerified: false` (the admin-console path); sign in on that number as *Alternate* | Refused | ❌→🔧 **Was: full access to the owner's account granted (BUG-21).** Fixed; retested → refused |
 | ALT-LOG-01 | Sign in as the alternate | Login screen → "Alternate number" → alternate number → `1234` | Reaches the owner's dashboard | 🔧 Pass after fix |
 | ALT-LOG-02 | "On behalf of" banner | Inspect the dashboard after ALT-LOG-01 | "ℹ️ You are using this service on behalf of 9811100011 (logged in from alternate number 9822200022)" | 🔧 Pass |
 | ALT-LOG-03 | Owner's cards visible | Inspect the card list | Owner's saved cards listed | 🔧 Pass |
@@ -258,7 +282,22 @@ harness.
 | ALT-ACC-01 | Alternate-number field is locked | Inspect Contact details | "Locked while logged in via alternate number" | 🔧 Pass |
 | ALT-ACC-02 | **Alternate must not be able to delete the owner's cards** | As the alternate, use Delete on a saved card | Action unavailable | ❌ **Fail — BUG-08.** Edit and Delete are fully available to the alternate |
 | ALT-ACC-03 | **Alternate must not be able to change the account email** | As the alternate, edit the email | Action unavailable, or requires the owner | ❌ **Fail — BUG-08.** Editable; changing it redirects all account notifications away from the owner |
-| ALT-ACC-04 | Unknown alternate number | Sign in as "Alternate" with a number nobody nominated | Refused; no account created | 📋 Not executed |
+
+### R5 negative paths — a non-alternate number signing in as *Alternate*
+
+The branch that decides what "Alternate" means had no refusal case at all. These
+four are the regression set for it.
+
+| ID | Title | Steps | Expected | Result |
+|----|-------|-------|----------|--------|
+| ALT-LOG-05 | **Own registered number submitted as *Alternate* must not damage the account** | On a paid account with a name, email, 1 saved card and a verified alternate: select *Alternate*, enter **your own registered number**, verify `1234`. Compare the stored record before and after | Refused with an explanation; the record is untouched | ❌→🔧 **Was: account destroyed (BUG-19).** `name`, `email`, `cards`, `paid`, `altPhone` all reset to blank. Fixed; retested → record byte-identical, clear refusal, stays on the login screen |
+| ALT-LOG-06 | **Unrecognised number as *Alternate* must not create an account** | Select *Alternate*, enter a number nobody has nominated, verify `1234` | Refused; no new record, no welcome messages | ❌→🔧 **Was: registered as a new own account, "Registered" logged, welcome SMS + WhatsApp sent (BUG-20).** Fixed; retested → no record created |
+| ALT-LOG-07 | **Unverified alternate must be refused** | Seed `altPhone` with `altVerified: false`; sign in on it as *Alternate* | Refused | ❌→🔧 **Was: full access granted (BUG-21).** Fixed; retested → refused |
+| ALT-LOG-08 | **Two owners sharing one alternate** | Seed two paid accounts that both nominate `9877700077`; sign in on it as *Alternate* | Choose which account to act for | ❌ **Fail — BUG-22.** Silently lands on the first account only; the second owner's cards are unreachable and nothing indicates the account exists |
+| ALT-LOG-09 | Regression: the genuine alternate still works | After the fix, sign in on a correctly verified alternate | Owner's dashboard with the "on behalf of" banner | 🔧 Pass |
+| ALT-LOG-10 | Regression: own-number login unaffected | Sign in on an existing account as *Own* | Dashboard, no "on behalf of" banner | 🔧 Pass |
+| ALT-LOG-11 | Regression: new-user signup unaffected | Sign in as *Own* with a never-seen number | Account created, Step 2 of 3 | 🔧 Pass |
+| ALT-ACC-04 | Unknown alternate number | Superseded by ALT-LOG-06 | Refused; no account created | 🔧 Pass after fix |
 
 ---
 
