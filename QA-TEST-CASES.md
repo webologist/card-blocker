@@ -21,15 +21,15 @@ Seven role groups:
 | # | Role | Who they are | Cases |
 |---|------|--------------|-------|
 | R1 | Guest / Unauthenticated Visitor | Anyone who lands on the marketing site | 22 |
-| R2 | New User (Registration & Onboarding) | First-time signup through OTP | 26 |
+| R2 | New User (Registration & Onboarding) | First-time signup through OTP | 27 |
 | R3 | Registered User — Free tier | Signed in, chose not to save cards | 12 |
 | R4 | Registered User — Paid tier | Signed in, ₹50/card, cards saved | 23 |
 | R5 | Alternate / Family Contact | Signed in on behalf of the account owner | 20 |
 | R6 | Admin | Operator of the in-app admin console | 18 |
 | R7 | Unauthenticated API Client | The attacker surface; no UI involved | 21 |
-| | | **Total** | **142** |
+| | | **Total** | **143** |
 
-Of these, **87 carry a recorded result** — executed against the live site, against
+Of these, **88 carry a recorded result** — executed against the live site, against
 the local harness, or by code inspection where the row says so. The remaining
 **55** are specified for the automation backlog and marked `📋 Not executed`.
 
@@ -113,6 +113,7 @@ Severity is business impact, not code size.
 | BUG-13 | Medium | Five legal pages ship but are unlinked from the site: `refund-policy.html`, `grievance-redressal.html`, `data-security.html`, `business-info.html`, `terms.html`. Footer links only 3 of 8. Grievance redressal and refund policy being unreachable is a consumer-compliance exposure for an India-facing paid service. | Open |
 | BUG-14 | Low | Admin → Users lists the internal placeholder record `__no_demo__` as a user account. | Open (`app.js`) |
 | BUG-15 | Low | Two admin tabs are both labelled **Messages** (blocking templates, and contact-form messages). | Open |
+| BUG-23 | Low | The consent line under the login form reads "By clicking on **Login**, I accept the Terms & Conditions & Privacy Policy" — but there is no control called Login on that screen; the button is labelled **Send OTP**. For implicit consent, inferred from a click rather than a checkbox, the sentence has to name the control the user actually presses. Suggested: "By tapping Send OTP, I accept…". | Open — one-line copy fix |
 | BUG-16 | Low | `lib/otp-rate-limit.js` is a notes file shaped like a module — it `require`s itself and is not valid runtime JS. Nothing imports it today; anything that does will 500. | Open — delete or implement |
 | BUG-17 | Low | The `SIMULATED MESSAGES SENT TO YOU` developer panel is visible to real users on production. | Open (`app.js`) |
 | BUG-18 | Medium | Payment is simulated end to end — "Payment successful (simulated)" is shown, `paid: true` and `paidAmount: 50` are recorded, no gateway is involved. Acceptable for a demo; a material misrepresentation if the ₹50 offer is presented as live. | Open — product decision |
@@ -191,6 +192,7 @@ details, with a payment prompt between.
 | REG-OTP-12 | Resend countdown | On the OTP screen, wait 60s | Button counts down then enables; resend issues a new OTP | ⚠️ Pass with observation — see REG-OTP-13 |
 | REG-OTP-13 | **Resend control is removed with the OTP screen** | Verify successfully, look at the next screen | No resend control anywhere | ❌→🔧 **Was: "Resend OTP in 15s" still ticking under the dashboard (BUG-09).** Fixed; retested → removed |
 | REG-OTP-14 | Expired OTP | Wait >5 min, then verify | "OTP has expired." | 📋 Not executed (timing) |
+| REG-OTP-15 | **Consent copy names the control the user presses** | Read the consent line under the login form and compare it to the button label | The sentence names the actual button | ❌ **Fail — BUG-23.** Copy says "By clicking on Login"; the button is "Send OTP". Both policy links themselves resolve and carry `rel="noopener noreferrer"` |
 | REG-CRD-01 | Name is captured | Enter full name on Step 2 | Stored on the record | ✅ Pass |
 | REG-CRD-02 | Add a card | Pick type, bank, last 4, "+ Add card" | Appears under "Cards added (1)" | ✅ Pass |
 | REG-CRD-03 | Last-4 accepts exactly 4 digits | Enter 3 digits, then 5 | Add disabled at 3; capped at 4 | 📋 Not executed |
