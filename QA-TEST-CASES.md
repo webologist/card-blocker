@@ -21,15 +21,15 @@ Seven role groups:
 | # | Role | Who they are | Cases |
 |---|------|--------------|-------|
 | R1 | Guest / Unauthenticated Visitor | Anyone who lands on the marketing site | 22 |
-| R2 | New User (Registration & Onboarding) | First-time signup through OTP | 27 |
+| R2 | New User (Registration & Onboarding) | First-time signup through OTP | 28 |
 | R3 | Registered User — Free tier | Signed in, chose not to save cards | 12 |
 | R4 | Registered User — Paid tier | Signed in, ₹50/card, cards saved | 23 |
 | R5 | Alternate / Family Contact | Signed in on behalf of the account owner | 20 |
 | R6 | Admin | Operator of the in-app admin console | 18 |
 | R7 | Unauthenticated API Client | The attacker surface; no UI involved | 21 |
-| | | **Total** | **143** |
+| | | **Total** | **144** |
 
-Of these, **88 carry a recorded result** — executed against the live site, against
+Of these, **89 carry a recorded result** — executed against the live site, against
 the local harness, or by code inspection where the row says so. The remaining
 **55** are specified for the automation backlog and marked `📋 Not executed`.
 
@@ -105,6 +105,7 @@ Severity is business impact, not code size.
 | BUG-20 | **High** | Signing in as *Alternate* with a number nobody nominated silently **registers it as a new own account** — logs "Registered", fires the welcome SMS and WhatsApp. The user stated the number belongs to someone else and the app made them an account holder, with no message explaining the number isn't linked to anyone. | 🔧 Fixed, retested |
 | BUG-21 | **High** | `altVerified` was never checked at login — `hv()` matched on `altPhone` alone. Since the admin console writes `altPhone` as a plain text field with no OTP, any number typed there became a working key to that account. `lib/storage-policy.js` requires `altVerified` for the same decision server-side; the client that actually runs disagreed with it. | 🔧 Fixed, retested |
 | BUG-22 | Medium | When two accounts nominate the **same** alternate number, `Object.values(u).find(...)` returns the first match only. Verified: the alternate lands on Parent One and Parent Two's cards are unreachable, with no picker and no indication a second account exists. This is precisely the "keep a parent's card list alongside yours" scenario on the landing page. | Open — needs an account-picker UI |
+| BUG-24 | Medium | A **failed send strands the user on a screen that lies to them**. `app.js` navigates to the OTP screen the instant the button is pressed; `otp-bridge.js` does the sending afterwards. So when `send-otp` returns 429 — or any error — the user sits on "An OTP has been sent to `<number>`" when none was. The toast saying otherwise clears after 10s, and that screen has no Send OTP button to retry from. Found while re-running the R5 regressions after exhausting the 3-per-10-min limit. | 🔧 Fixed, retested |
 | BUG-08 | Medium | The alternate contact has full write access: they can delete the owner's saved cards and change the account email (which redirects all notifications). Only the alternate-number field is locked. | Open — permission model decision |
 | BUG-09 | Medium | A `Resend OTP in Ns` countdown injected on the OTP screen was never removed, and kept ticking under the register screen and dashboard. | 🔧 Fixed, retested |
 | BUG-10 | Medium | The Quick-login panel keyed off "a `tel` input exists", so it rendered on the contact screen and dashboard — anchored above the page header. | 🔧 Fixed, retested |
@@ -189,6 +190,7 @@ details, with a payment prompt between.
 | REG-OTP-09 | **Stale error toast clears on success** | Fail once, then verify correctly | No error toast on the next screen | ❌→🔧 **Was: failed-attempt toast persisted onto the dashboard (BUG-11).** Fixed; retested → toast hidden |
 | REG-OTP-10 | Attempt lockout | 5 wrong codes against one token | 6th returns 429 "Too many incorrect attempts" | 🔧 Pass after fix — `400,400,400,400,400,429,429` |
 | REG-OTP-11 | Send rate limit | Request OTP 5× for one number | 4th and 5th return 429 | ✅ Pass — `200,200,200,429,429` |
+| REG-OTP-16 | **A refused send must not strand the user** | Exhaust the 3-per-10-min allowance for a number, then tap Send OTP from the form | Stays on (or returns to) the form with the number editable and the reason shown | ❌→🔧 **Was: left on "An OTP has been sent to `<number>`" with no send made, no Send OTP button to retry from, and the only explanation in a toast that self-clears (BUG-24).** Fixed; retested → returned to the form, number preserved, "Too many OTP requests. Please wait 10 minutes." |
 | REG-OTP-12 | Resend countdown | On the OTP screen, wait 60s | Button counts down then enables; resend issues a new OTP | ⚠️ Pass with observation — see REG-OTP-13 |
 | REG-OTP-13 | **Resend control is removed with the OTP screen** | Verify successfully, look at the next screen | No resend control anywhere | ❌→🔧 **Was: "Resend OTP in 15s" still ticking under the dashboard (BUG-09).** Fixed; retested → removed |
 | REG-OTP-14 | Expired OTP | Wait >5 min, then verify | "OTP has expired." | 📋 Not executed (timing) |

@@ -38,6 +38,24 @@ var live=findLogoutButton();if(live)live.click();else location.reload();};}}
   //   btn  - button to show progress on, or null when the click navigates away
   //          and React is about to unmount it.
   //   opts - {purpose:'login'|'altPhone', sentMsg:string}
+  // The app moves to the OTP screen the moment the button is pressed, and this
+  // file does the sending afterwards - so a send that fails leaves the user on
+  // a screen announcing "An OTP has been sent to <number>" when none was. The
+  // toast saying otherwise clears itself after ten seconds, and there is no
+  // Send OTP button on that screen to retry from: a rate-limited user is stuck
+  // reading a message that is not true. Walk them back to the form, where the
+  // number is still editable and the button still exists.
+  //
+  // Polled rather than immediate because React has usually not painted the OTP
+  // screen yet when a fast failure comes back.
+  function abandonOtpScreen(){
+    var tries=0;
+    var timer=setInterval(function(){
+      if(++tries>20){clearInterval(timer);return;}
+      var back=[].slice.call(document.querySelectorAll('#root button')).filter(function(b){return b.textContent.trim()==='Go back';})[0];
+      if(back){clearInterval(timer);removeResendButton();back.click();}
+    },100);
+  }
   function requestOtpFor(digits,btn,opts){
     opts=opts||{};hideError();
     _otpPurpose=opts.purpose||'login';
@@ -53,13 +71,13 @@ var live=findLogoutButton();if(live)live.click();else location.reload();};}}
     if(btn){btn.disabled=true;btn.textContent='Sending...';}
     fetchWT('/api/send-otp',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({phone:lastPhone,dummyMode:dummy})})
       .then(function(res){
-        if(res.status===429){showError('Too many OTP requests. Please wait 10 minutes.');reset();return;}
+        if(res.status===429){showError('Too many OTP requests. Please wait 10 minutes.');reset();abandonOtpScreen();return;}
         return safeJson(res).then(function(data){
           // Refusals the server can be specific about are worth repeating
           // verbatim - "this number isn't whitelisted on our trial account"
           // is one an alternate number runs into far more often than the
           // login number does, and "try again" is useless advice for it.
-          if(!res.ok||!data||!data.token){showError((data&&data.error)||'Could not send OTP. Please try again.');reset();return;}
+          if(!res.ok||!data||!data.token){showError((data&&data.error)||'Could not send OTP. Please try again.');reset();abandonOtpScreen();return;}
           _pendingToken=data.token;sessionStorage.setItem('bmc_token',_pendingToken);_otpRequestId++;
           if(opts.sentMsg)showError(opts.sentMsg);
           if(btn){btn.textContent='OTP sent';setTimeout(function(){btn.textContent=orig;btn.disabled=false;},60000);}
