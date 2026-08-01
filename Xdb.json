@@ -1,7 +1,0 @@
-{
-  "cbp:users": "{\"__no_demo__\":{\"phone\":\"__no_demo__\",\"altPhone\":\"\",\"altVerified\":false,\"name\":\"\",\"email\":\"\",\"saved\":false,\"paid\":false,\"paidAmount\":0,\"createdAt\":\"\",\"cards\":[]}}",
-  "cbp:logs": "[]",
-  "cbp:templates": "{}",
-  "cbp:otp_mode": "live",
-  "cbp:otp_tokens": "{}"
-}
