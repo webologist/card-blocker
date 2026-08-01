@@ -1482,7 +1482,13 @@ function _styleAppImpl() {
     });
     sec.querySelectorAll('[class*="bg-amber-50"],[class*="border-dashed"]').forEach(el => Object.assign(el.style, {background:isDark?'rgba(214,58,42,.1)':'#fff5f5', borderColor:'#fca5a5', borderRadius:'10px'}));
     sec.querySelectorAll('[class*="text-amber-7"]').forEach(el => el.style.color = RED);
-    sec.querySelectorAll('[role="alert"],[class*="text-destructive"],[class*="text-red-8"]').forEach(el => el.style.color = RED);
+    /* Alerts are yellow with black text in both themes — see bmcAlert in app.js.
+       This pass used to paint every [role="alert"] red, which on the red hero
+       band left the app's own alerts at roughly 2.4:1 against their background:
+       on screen and still unreadable. Repaint the whole chip, not just the text,
+       so a themed alert cannot end up red-on-red again. */
+    sec.querySelectorAll('[role="alert"]').forEach(el => Object.assign(el.style, {background:'#facc15', borderColor:'#ca8a04', color:'#000'}));
+    sec.querySelectorAll('[class*="text-destructive"],[class*="text-red-8"]').forEach(el => { if (!el.closest('[role="alert"]')) el.style.color = RED; });
   });
 
   root.querySelectorAll('button').forEach(btn => {
