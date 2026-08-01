@@ -4,7 +4,7 @@ const cors = require('cors');
 const path = require('path');
 const fs = require('fs');
 const { createClient } = require('@supabase/supabase-js');
-const { checkAdminKey } = require('./lib/admin-auth');
+const { checkAdminKey, checkAdminAccess } = require('./lib/admin-auth');
 const { getSettings, saveSettings, claimLoginEmail } = require('./lib/email-settings-store');
 const { sendEmail, maskSettings } = require('./lib/email-providers');
 const { validateContact, buildContactEmail, contactRecipient, storageKey } = require('./lib/contact');
@@ -116,8 +116,10 @@ const WRITABLE_EMAIL_FIELDS = [
 // written as a safety net against a failing email provider, but nothing could
 // read them, so the net was unreachable. Mirrors api/contact-messages.js.
 app.get('/api/contact-messages', async (req, res) => {
-  const auth = checkAdminKey(req);
-  if (!auth.ok) return res.status(401).json({ error: auth.error });
+  const auth = await checkAdminAccess(req);
+  // 403 to match api/contact-messages.js - the browser treats them alike now,
+  // but two answers to the same question is how that mismatch got missed.
+  if (!auth.ok) return res.status(403).json({ error: auth.error });
   const limit = Math.min(parseInt(req.query.limit, 10) || 100, 500);
   try {
     const { data, error } = await supabase.from('kv_store').select('key,value').like('key', 'contact:%');
@@ -316,7 +318,7 @@ app.use(express.static(__dirname));
 // ── SPA fallback: unmatched routes like /login or /dashboard render the app instead of a raw 404 ──
 app.get(/^\/(?!api\/).*/, sendApp);
 
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
 app.listen(PORT, async () => {
   console.log('');
   console.log('  BlockMyCard running at http://localhost:' + PORT);

@@ -1,0 +1,34 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "card-blocker-server",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["server.js"],
+      "port": 3000,
+      "url": "http://localhost:3000"
+    },
+    {
+      "name": "card-blocker-server-3001",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["server.js"],
+      "env": { "PORT": "3001" },
+      "port": 3001,
+      "url": "http://localhost:3001"
+    },
+    {
+      "name": "session-harness",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["C:\\Users\\zxis\\AppData\\Local\\Temp\\claude\\C--card-blocker\\6aa1071d-62a4-4d3a-aef7-a35a992e079d\\scratchpad\\test-server.js"],
+      "port": 3100,
+      "url": "http://localhost:3100"
+    },
+    {
+      "name": "qa-harness",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["qa/harness.js"],
+      "port": 4321,
+      "url": "http://localhost:4321"
+    }
+  ]
+}

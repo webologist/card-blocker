@@ -8,11 +8,47 @@
 // exactly when it mattered. This is the screen that reads them.
 (function () {
   var ADMIN_KEY_STORAGE = 'bmc_admin_key';
+  var PHONE_TOKEN_STORAGE = 'bmc_phone_token';
   var injected = false;
   var panelHost = null;
+  // Set when the server rejects what we hold, so the next screen offers the
+  // field instead of a button that would fail the same way.
+  var credentialRejected = false;
 
+  // The Email Integrations tab keeps the same secret under the same name but in
+  // sessionStorage, so a key entered there used to be invisible here and the
+  // admin was asked for it twice. Read both, write both.
   function adminKey() {
-    try { return localStorage.getItem(ADMIN_KEY_STORAGE) || ''; } catch (e) { return ''; }
+    var v = '';
+    try { v = localStorage.getItem(ADMIN_KEY_STORAGE) || ''; } catch (e) {}
+    if (!v) { try { v = sessionStorage.getItem(ADMIN_KEY_STORAGE) || ''; } catch (e) {} }
+    return v;
+  }
+
+  function rememberKey(v) {
+    try { localStorage.setItem(ADMIN_KEY_STORAGE, v); } catch (e) {}
+    try { sessionStorage.setItem(ADMIN_KEY_STORAGE, v); } catch (e) {}
+  }
+
+  function forgetKey() {
+    try { localStorage.removeItem(ADMIN_KEY_STORAGE); } catch (e) {}
+    try { sessionStorage.removeItem(ADMIN_KEY_STORAGE); } catch (e) {}
+  }
+
+  // Written by otp-bridge.js on a successful OTP. Signing in as the admin
+  // number is already how this console is reached, so when the token is there
+  // the key is not needed - the server accepts either.
+  function phoneToken() {
+    try { return sessionStorage.getItem(PHONE_TOKEN_STORAGE) || ''; } catch (e) { return ''; }
+  }
+
+  function authHeaders() {
+    var h = {};
+    var k = adminKey();
+    var t = phoneToken();
+    if (k) h['x-admin-key'] = k;
+    if (t) h['x-phone-token'] = t;
+    return h;
   }
 
   function esc(s) {
@@ -31,16 +67,47 @@
     });
   }
 
-  function unlockMarkup(msg) {
+  var BTN_CSS = 'background:#0f172a;color:#fff;font-weight:700;font-size:.875rem;' +
+    'padding:.55rem 1.1rem;border:none;border-radius:.375rem;cursor:pointer';
+
+  function unlockShell(body, msg) {
     return '' +
       '<div style="max-width:26rem">' +
       '<h3 style="font-size:1.05rem;font-weight:800;margin-bottom:.35rem">Contact messages</h3>' +
-      '<p style="font-size:.85rem;color:#64748b;margin-bottom:.75rem">Enter the admin key to read messages sent from the contact form.</p>' +
       (msg ? '<p role="alert" style="font-size:.8rem;color:#b91c1c;margin-bottom:.6rem">' + esc(msg) + '</p>' : '') +
+      body +
+      '</div>';
+  }
+
+  // Preferred path: this browser already holds a credential the server accepts,
+  // so there is nothing to type - one button submits it.
+  function buttonMarkup(msg) {
+    var viaLogin = !!phoneToken();
+    return unlockShell(
+      '<p style="font-size:.85rem;color:#64748b;margin-bottom:.75rem">' +
+      (viaLogin
+        ? 'Signed in on the admin number. Unlock to read messages sent from the contact form.'
+        : 'This browser has an admin key saved. Unlock to read messages sent from the contact form.') +
+      '</p>' +
+      '<button id="bmc-cm-unlock" style="' + BTN_CSS + '">Unlock messages</button>' +
+      (viaLogin ? '' :
+        '<button id="bmc-cm-forget" style="margin-left:.6rem;background:none;border:1px solid #cbd5e1;' +
+        'border-radius:.375rem;padding:.55rem 1rem;font-size:.8rem;font-weight:600;color:#475569;cursor:pointer">Use a different key</button>'),
+      msg
+    );
+  }
+
+  // Fallback only: nothing saved yet, so a button would have nothing to submit.
+  // The secret is never baked into this file - it is served to every visitor.
+  function fieldMarkup(msg) {
+    return unlockShell(
+      '<p style="font-size:.85rem;color:#64748b;margin-bottom:.75rem">' +
+      'Enter the admin key once. It is saved in this browser, so from now on unlocking is a single button.</p>' +
       '<input id="bmc-cm-key" type="password" placeholder="Admin key" autocomplete="off" ' +
       'style="width:100%;padding:.55rem .7rem;border:1px solid #cbd5e1;border-radius:.375rem;font-size:.9rem;margin-bottom:.6rem"/>' +
-      '<button id="bmc-cm-unlock" style="background:#0f172a;color:#fff;font-weight:700;font-size:.875rem;padding:.55rem 1.1rem;border:none;border-radius:.375rem;cursor:pointer">Unlock</button>' +
-      '</div>';
+      '<button id="bmc-cm-unlock" style="' + BTN_CSS + '">Unlock</button>',
+      msg
+    );
   }
 
   function messageMarkup(m) {
@@ -77,17 +144,29 @@
     return head + msgs.map(messageMarkup).join('');
   }
 
+  // Opening the tab never fires the request on its own - it offers the button
+  // that does, or the field if this browser has no key yet.
   function refreshPanel() {
     if (!panelHost) return;
-    var key = adminKey();
-    if (!key) { renderUnlock(); return; }
+    renderUnlock();
+  }
+
+  function loadMessages() {
+    if (!panelHost) return;
+    var headers = authHeaders();
+    if (!headers['x-admin-key'] && !headers['x-phone-token']) { renderUnlock(); return; }
 
     panelHost.innerHTML = '<div style="font-size:.875rem;color:#64748b">Loading messages&hellip;</div>';
-    fetch('/api/contact-messages?limit=200', { headers: { 'x-admin-key': key } })
+    fetch('/api/contact-messages?limit=200', { headers: headers })
       .then(function (res) {
-        if (res.status === 403) {
-          try { localStorage.removeItem(ADMIN_KEY_STORAGE); } catch (e) {}
-          renderUnlock('That admin key was not accepted.');
+        // server.js answers 401, the Vercel function answers 403 - both mean
+        // the same thing, and only one of them used to clear the bad key.
+        if (res.status === 401 || res.status === 403) {
+          forgetKey();
+          credentialRejected = true;
+          renderUnlock(headers['x-phone-token']
+            ? 'This login was not accepted for messages. Enter the admin key instead.'
+            : 'That admin key was not accepted.');
           return null;
         }
         if (!res.ok) throw new Error('Request failed (' + res.status + ')');
@@ -95,9 +174,10 @@
       })
       .then(function (payload) {
         if (!payload) return;
+        credentialRejected = false;
         panelHost.innerHTML = listMarkup(payload);
         var rb = document.getElementById('bmc-cm-refresh');
-        if (rb) rb.addEventListener('click', refreshPanel);
+        if (rb) rb.addEventListener('click', loadMessages);
       })
       .catch(function (err) {
         panelHost.innerHTML = '<p role="alert" style="font-size:.875rem;color:#b91c1c">Could not load messages: ' +
@@ -106,14 +186,28 @@
   }
 
   function renderUnlock(msg) {
-    panelHost.innerHTML = unlockMarkup(msg);
+    // A rejected credential falls back to the field - offering the button again
+    // would just replay the same failure.
+    var saved = !credentialRejected && (adminKey() || phoneToken());
+    panelHost.innerHTML = saved ? buttonMarkup(msg) : fieldMarkup(msg);
+
     var btn = document.getElementById('bmc-cm-unlock');
+
+    if (saved) {
+      if (btn) btn.addEventListener('click', loadMessages);
+      var forget = document.getElementById('bmc-cm-forget');
+      if (forget) {
+        forget.addEventListener('click', function () { forgetKey(); renderUnlock(); });
+      }
+      return;
+    }
+
     var input = document.getElementById('bmc-cm-key');
     function submit() {
       var v = (input.value || '').trim();
       if (!v) return;
-      try { localStorage.setItem(ADMIN_KEY_STORAGE, v); } catch (e) {}
-      refreshPanel();
+      rememberKey(v);
+      loadMessages();
     }
     if (btn) btn.addEventListener('click', submit);
     if (input) input.addEventListener('keydown', function (e) { if (e.key === 'Enter') submit(); });
@@ -136,7 +230,9 @@
 
     var tabBtn = document.createElement('button');
     tabBtn.dataset.bmcMessagesTab = '1';
-    tabBtn.textContent = 'Messages';
+    // The console already has a native "Messages" tab (message templates), so
+    // this one has to say what it actually holds or the row shows two of them.
+    tabBtn.textContent = 'Contact messages';
     tabBtn.style.cssText = 'padding:.375rem .75rem;border-radius:.375rem;font-size:.875rem;font-weight:600;background:#fff;border:1px solid #cbd5e1;color:#475569;cursor:pointer;';
     tabContainer.appendChild(tabBtn);
 

@@ -12,7 +12,7 @@
 // Admin-gated by the same shared secret as the email-integration endpoints.
 
 const { createClient } = require('@supabase/supabase-js');
-const { checkAdminKey } = require('../lib/admin-auth');
+const { checkAdminAccess } = require('../lib/admin-auth');
 
 const ALLOWED_ORIGINS = ['https://card-blocker.vercel.app'];
 const MAX_LIMIT = 500;
@@ -29,11 +29,11 @@ export default async function handler(req, res) {
   if (origin && !ALLOWED_ORIGINS.includes(origin)) return res.status(403).json({ error: 'Origin not allowed' });
   res.setHeader('Access-Control-Allow-Origin', ALLOWED_ORIGINS[0]);
   res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, x-admin-key');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, x-admin-key, x-phone-token');
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' });
 
-  const admin = checkAdminKey(req);
+  const admin = await checkAdminAccess(req);
   if (!admin.ok) return res.status(403).json({ error: admin.error });
 
   const limit = Math.min(parseInt(req.query.limit, 10) || 100, MAX_LIMIT);
