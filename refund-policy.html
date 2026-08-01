@@ -1,12 +1,41 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark" data-font-size="md">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="BlockMyCard Refund & Cancellation Policy - 7-day money-back guarantee">
     <meta name="robots" content="index,follow">
     <title>Refund & Cancellation Policy — BlockMyCard.in</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet"/>
+
+<!-- Apply the saved theme before paint so the page never flashes the wrong colours. -->
+<script>
+(function(){
+  try {
+    document.documentElement.setAttribute('data-theme', localStorage.getItem('bmc_theme') || 'dark');
+    document.documentElement.setAttribute('data-font-size', localStorage.getItem('bmc_font') || 'md');
+  } catch (e) {}
+})();
+</script>
+
+<!-- Shared site header — same markup, styling and controls as index.html -->
+<link rel="stylesheet" href="/assets/site-header.css"/>
+<script defer src="/assets/site-header.js"></script>
+
     <style>
+
+        /* Page tokens beyond the header set — the header's own tokens come from
+           assets/site-header.css, which is loaded above and can be overridden
+           here. The --tint-* pairs keep the pale callout panels legible in dark
+           mode; the light values are the page's original colours. */
+        :root {
+            --tint-purple: #f3e5f5;
+        }
+        [data-theme="dark"] {
+            --tint-purple: rgba(111,66,193,.20);
+        }
         * {
             margin: 0;
             padding: 0;
@@ -15,62 +44,21 @@
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
             line-height: 1.7;
-            color: #333;
-            background: #f9f9f9;
-        }
-        .navbar {
-            background: #1a1a1a;
-            padding: 0;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            position: sticky;
-            top: 0;
-            z-index: 100;
-        }
-        .navbar-container {
-            max-width: 900px;
-            margin: 0 auto;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 15px 20px;
-        }
-        .navbar-brand {
-            font-weight: bold;
-            color: #6f42c1;
-            text-decoration: none;
-            font-size: 18px;
-        }
-        .navbar-links {
-            display: flex;
-            gap: 5px;
-            flex-wrap: wrap;
-        }
-        .navbar-links a {
-            color: #fff;
-            text-decoration: none;
-            padding: 8px 12px;
-            font-size: 13px;
-            border-radius: 3px;
-            transition: background 0.3s;
-        }
-        .navbar-links a:hover {
-            background: #6f42c1;
-        }
-        .navbar-links a.active {
-            background: #6f42c1;
-            font-weight: bold;
+            color: var(--fg);
+            background: var(--bg);
         }
         .container {
             max-width: 900px;
             margin: 0 auto;
             padding: 40px 20px;
-            background: white;
+            background: var(--card);
             margin-top: 20px;
             margin-bottom: 20px;
             border-radius: 8px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            border: 1px solid var(--border);
+            box-shadow: var(--shadow-sm);
         }
-        header {
+        .container header {
             margin-bottom: 40px;
             border-bottom: 3px solid #6f42c1;
             padding-bottom: 20px;
@@ -78,10 +66,10 @@
         h1 {
             font-size: 32px;
             margin-bottom: 10px;
-            color: #1a1a1a;
+            color: var(--fg);
         }
         .meta {
-            color: #666;
+            color: var(--fg2);
             font-size: 14px;
             margin-top: 10px;
         }
@@ -89,7 +77,7 @@
             font-size: 22px;
             margin-top: 35px;
             margin-bottom: 15px;
-            color: #1a1a1a;
+            color: var(--fg);
             border-left: 4px solid #6f42c1;
             padding-left: 15px;
         }
@@ -97,7 +85,7 @@
             font-size: 16px;
             margin-top: 20px;
             margin-bottom: 10px;
-            color: #2a2a2a;
+            color: var(--fg);
         }
         p {
             margin-bottom: 15px;
@@ -111,7 +99,7 @@
             margin-bottom: 8px;
         }
         strong {
-            color: #1a1a1a;
+            color: var(--fg);
         }
         table {
             width: 100%;
@@ -119,26 +107,26 @@
             margin: 20px 0;
         }
         table th, table td {
-            border: 1px solid #ddd;
+            border: 1px solid var(--border);
             padding: 12px;
             text-align: left;
         }
         table th {
-            background: #f5f5f5;
+            background: var(--bg2);
             font-weight: bold;
         }
         table tr:nth-child(even) {
-            background: #fafafa;
+            background: rgba(127,127,127,.06);
         }
         .guarantee-box {
-            background: #f3e5f5;
+            background: var(--tint-purple);
             border-left: 4px solid #6f42c1;
             padding: 15px;
             margin: 20px 0;
             border-radius: 4px;
         }
         .contact-section {
-            background: #f0f0f0;
+            background: var(--bg2);
             padding: 20px;
             border-radius: 6px;
             margin-top: 30px;
@@ -171,13 +159,6 @@
             margin-top: 15px;
         }
         @media (max-width: 600px) {
-            .navbar-links {
-                gap: 3px;
-            }
-            .navbar-links a {
-                padding: 6px 8px;
-                font-size: 12px;
-            }
             h1 {
                 font-size: 24px;
             }
@@ -188,19 +169,114 @@
     </style>
 </head>
 <body>
-    <!-- Navigation -->
-    <nav class="navbar">
-        <div class="navbar-container">
-            <a href="/" class="navbar-brand">BlockMyCard</a>
-            <div class="navbar-links">
-                <a href="/terms.html">Terms</a>
-                <a href="/business-info.html">Business Info</a>
-                <a href="/grievance-redressal.html">Grievance</a>
-                <a href="/data-security.html">Security</a>
-                <a href="/refund-policy.html" class="active">Refunds</a>
-            </div>
-        </div>
+<!-- NAV — mirrors the site header on index.html; anchors are absolute so they
+     land on the home page rather than looking for sections on this page. -->
+<header class="nav">
+  <div class="nav-inner">
+    <a href="/" class="nav-logo">
+      <div class="nav-logo-icon" aria-hidden="true">&#x26E8;</div>
+      <div class="nav-logo-text">BlockMyCard<span>.in</span></div>
+    </a>
+    <nav aria-label="Primary navigation">
+      <ul class="nav-links">
+        <li><a href="/#features">Features</a></li>
+        <li><a href="/#stats">Fraud Data</a></li>
+        <li><a href="/#how">How it Works</a></li>
+        <li><a href="/#block">Block Steps</a></li>
+        <li><a href="/#card-tool">Card Blocker</a></li>
+      </ul>
     </nav>
+    <div class="nav-actions">
+      <!-- Font size -->
+      <div style="position:relative">
+        <button class="nav-icon-btn"
+                id="font-dd-btn"
+                onclick="toggleDropdown('font-dd')"
+                aria-label="Font size"
+                aria-haspopup="menu"
+                aria-controls="font-dd"
+                aria-expanded="false"
+                title="Font size">&#x1D400;</button>
+        <div class="dropdown" id="font-dd" role="menu" aria-label="Font size options">
+          <span class="dropdown-label" id="txt-a11y-font">Font size</span>
+          <div class="font-grid">
+            <button class="font-btn" style="font-size:12px" data-size="sm" onclick="setFont('sm')" id="font-sm" role="menuitemradio" aria-checked="false" aria-label="Small font">A</button>
+            <button class="font-btn active" style="font-size:15px" data-size="md" onclick="setFont('md')" id="font-md" role="menuitemradio" aria-checked="true" aria-label="Medium font">A</button>
+            <button class="font-btn" style="font-size:18px" data-size="lg" onclick="setFont('lg')" id="font-lg" role="menuitemradio" aria-checked="false" aria-label="Large font">A</button>
+            <button class="font-btn" style="font-size:21px" data-size="xl" onclick="setFont('xl')" id="font-xl" role="menuitemradio" aria-checked="false" aria-label="Extra large font">A</button>
+          </div>
+        </div>
+      </div>
+      <!-- Language -->
+      <div style="position:relative">
+        <button class="nav-icon-btn"
+                id="lang-dd-btn"
+                onclick="toggleDropdown('lang-dd')"
+                aria-label="Language"
+                aria-haspopup="menu"
+                aria-controls="lang-dd"
+                aria-expanded="false"
+                title="Language">&#x1F310;</button>
+        <div class="dropdown" id="lang-dd" role="menu" aria-label="Language options">
+          <span class="dropdown-label" id="txt-a11y-lang">Language</span>
+          <button class="dropdown-btn" onclick="setLang('bn')" id="lang-bn" role="menuitemradio" aria-checked="false"><span class="native">বাংলা</span><span class="en">Bengali</span></button>
+          <button class="dropdown-btn active" onclick="setLang('en')" id="lang-en" role="menuitemradio" aria-checked="true"><span class="native">English</span><span class="en">English</span></button>
+          <button class="dropdown-btn" onclick="setLang('gu')" id="lang-gu" role="menuitemradio" aria-checked="false"><span class="native">ગુજરાતી</span><span class="en">Gujarati</span></button>
+          <button class="dropdown-btn" onclick="setLang('hi')" id="lang-hi" role="menuitemradio" aria-checked="false"><span class="native">हिन्दी</span><span class="en">Hindi</span></button>
+          <button class="dropdown-btn" onclick="setLang('kn')" id="lang-kn" role="menuitemradio" aria-checked="false"><span class="native">ಕನ್ನಡ</span><span class="en">Kannada</span></button>
+          <button class="dropdown-btn" onclick="setLang('ml')" id="lang-ml" role="menuitemradio" aria-checked="false"><span class="native">മലയാളം</span><span class="en">Malayalam</span></button>
+          <button class="dropdown-btn" onclick="setLang('mr')" id="lang-mr" role="menuitemradio" aria-checked="false"><span class="native">मराठी</span><span class="en">Marathi</span></button>
+          <button class="dropdown-btn" onclick="setLang('or')" id="lang-or" role="menuitemradio" aria-checked="false"><span class="native">ଓଡ଼ିଆ</span><span class="en">Odia</span></button>
+          <button class="dropdown-btn" onclick="setLang('ta')" id="lang-ta" role="menuitemradio" aria-checked="false"><span class="native">தமிழ்</span><span class="en">Tamil</span></button>
+          <button class="dropdown-btn" onclick="setLang('te')" id="lang-te" role="menuitemradio" aria-checked="false"><span class="native">తెలుగు</span><span class="en">Telugu</span></button>
+        </div>
+      </div>
+      <!-- Dark mode -->
+      <button class="nav-icon-btn" onclick="toggleTheme()" aria-label="Toggle colour theme" id="theme-btn" title="Toggle theme">&#x1F319;</button>
+      <!-- Register CTA -->
+      <a href="/#card-tool" class="nav-cta" id="nav-cta">Register/ Block <span aria-hidden="true">&#x2192;</span></a>
+      <button class="nav-icon-btn mobile-only"
+              onclick="toggleMobileMenu()"
+              aria-label="Open navigation menu"
+              aria-haspopup="true"
+              aria-controls="mobile-menu"
+              aria-expanded="false"
+              id="mobile-menu-btn">&#x2630;</button>
+    </div>
+  </div>
+  <!-- Mobile menu -->
+  <div class="mobile-menu" id="mobile-menu" role="navigation" aria-label="Mobile navigation">
+    <div class="mobile-menu-inner">
+      <a href="/#features" onclick="closeMobileMenu()">Features</a>
+      <a href="/#stats" onclick="closeMobileMenu()">Fraud Data</a>
+      <a href="/#how" onclick="closeMobileMenu()">How it Works</a>
+      <a href="/#block" onclick="closeMobileMenu()">Block Steps</a>
+      <a href="/#card-tool" onclick="closeMobileMenu()">Card Blocker</a>
+      <hr class="mobile-divider"/>
+      <div class="mobile-pref-label" id="txt-m-font">Font size</div>
+      <div class="font-grid" style="margin-bottom:.75rem">
+        <button class="font-btn" style="font-size:12px" data-size="sm" onclick="setFont('sm')" aria-checked="false" role="menuitemradio" aria-label="Small font">A</button>
+        <button class="font-btn active" style="font-size:15px" data-size="md" onclick="setFont('md')" aria-checked="true" role="menuitemradio" aria-label="Medium font">A</button>
+        <button class="font-btn" style="font-size:18px" data-size="lg" onclick="setFont('lg')" aria-checked="false" role="menuitemradio" aria-label="Large font">A</button>
+        <button class="font-btn" style="font-size:21px" data-size="xl" onclick="setFont('xl')" aria-checked="false" role="menuitemradio" aria-label="Extra large font">A</button>
+      </div>
+      <div class="mobile-pref-label" id="txt-m-lang">Language</div>
+      <div class="mobile-lang-grid">
+        <button class="dropdown-btn" onclick="setLang('bn');closeMobileMenu()" id="mlang-bn" aria-checked="false" role="menuitemradio"><span class="native">বাংলা</span></button>
+        <button class="dropdown-btn active" onclick="setLang('en');closeMobileMenu()" id="mlang-en" aria-checked="true" role="menuitemradio"><span class="native">English</span></button>
+        <button class="dropdown-btn" onclick="setLang('gu');closeMobileMenu()" id="mlang-gu" aria-checked="false" role="menuitemradio"><span class="native">ગુજરાતી</span></button>
+        <button class="dropdown-btn" onclick="setLang('hi');closeMobileMenu()" id="mlang-hi" aria-checked="false" role="menuitemradio"><span class="native">हिन्दी</span></button>
+        <button class="dropdown-btn" onclick="setLang('kn');closeMobileMenu()" id="mlang-kn" aria-checked="false" role="menuitemradio"><span class="native">ಕನ್ನಡ</span></button>
+        <button class="dropdown-btn" onclick="setLang('ml');closeMobileMenu()" id="mlang-ml" aria-checked="false" role="menuitemradio"><span class="native">മലയാളം</span></button>
+        <button class="dropdown-btn" onclick="setLang('mr');closeMobileMenu()" id="mlang-mr" aria-checked="false" role="menuitemradio"><span class="native">मराठी</span></button>
+        <button class="dropdown-btn" onclick="setLang('or');closeMobileMenu()" id="mlang-or" aria-checked="false" role="menuitemradio"><span class="native">ଓଡ଼ିଆ</span></button>
+        <button class="dropdown-btn" onclick="setLang('ta');closeMobileMenu()" id="mlang-ta" aria-checked="false" role="menuitemradio"><span class="native">தமிழ்</span></button>
+        <button class="dropdown-btn" onclick="setLang('te');closeMobileMenu()" id="mlang-te" aria-checked="false" role="menuitemradio"><span class="native">తెలుగు</span></button>
+      </div>
+      <a href="/#card-tool" onclick="closeMobileMenu()" class="nav-cta" style="justify-content:center;margin-top:.5rem" id="mnav-cta">Register Free &#x2192;</a>
+    </div>
+  </div>
+</header>
 
     <!-- Content -->
     <div class="container">
@@ -333,7 +409,7 @@
             Mandapeshwar Kripa, Mumbai 400103, India</p>
         </section>
 
-        <p style="margin-top: 40px; font-size: 14px; color: #666; text-align: center;">
+        <p style="margin-top: 40px; font-size: 14px; color: var(--fg2); text-align: center;">
             © 2026 Vertical Infinity Pvt. Ltd. All rights reserved.
         </p>
     </div>

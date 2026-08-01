@@ -25,31 +25,25 @@
 })();
 </script>
 
+<!-- Shared site header — same markup, styling and controls as index.html -->
+<link rel="stylesheet" href="/assets/site-header.css"/>
+<script defer src="/assets/site-header.js"></script>
+
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 html{scroll-behavior:smooth}
 
+/* Tokens beyond the header set — the header's own tokens come from
+   assets/site-header.css, which is loaded above and can be overridden here. */
 :root{
-  --red:#d63a2a;--red-dark:#b72e1e;--red-light:#fef2f2;
-  --bg:#ffffff;--bg2:#f8f9fa;--fg:#111827;--fg2:#6b7280;
-  --border:#e5e7eb;--card:#ffffff;
   --warning-bg:#fffbeb;--warning-border:#fde68a;--warning-fg:#92400e;
-  --radius-sm:8px;--radius-md:12px;--radius-lg:16px;
 }
 [data-theme="dark"]{
-  --bg:#0f172a;--bg2:#1e293b;--fg:#f1f5f9;--fg2:#94a3b8;
-  --border:#334155;--card:#1e293b;
-  --red-light:rgba(214,58,42,.15);
   --warning-bg:rgba(217,119,6,.12);--warning-border:rgba(217,119,6,.35);--warning-fg:#fcd34d;
 }
 
-[data-font-size="sm"]{font-size:14px}
-[data-font-size="md"]{font-size:16px}
-[data-font-size="lg"]{font-size:18px}
-[data-font-size="xl"]{font-size:20px}
-
 body{
-  font-family:'Inter',system-ui,sans-serif;
+  font-family:'Inter','Noto Sans Devanagari','Noto Sans Gujarati','Noto Sans Bengali','Noto Sans Telugu','Noto Sans Tamil','Noto Sans Kannada','Noto Sans Oriya','Noto Sans Malayalam',system-ui,sans-serif;
   background:var(--bg);color:var(--fg);line-height:1.7;
   -webkit-font-smoothing:antialiased;
   transition:background .2s,color .2s;
@@ -57,44 +51,6 @@ body{
 
 .skip-link{position:absolute;left:-9999px;top:auto;width:1px;height:1px;overflow:hidden}
 .skip-link:focus{position:fixed;top:1rem;left:1rem;width:auto;height:auto;padding:.6rem 1.2rem;background:var(--red);color:#fff;border-radius:var(--radius-sm);font-weight:700;z-index:9999;text-decoration:none}
-
-/* ── Header ── */
-.nav{
-  position:sticky;top:0;z-index:50;
-  background:var(--bg);border-bottom:1px solid var(--border);
-  backdrop-filter:saturate(180%) blur(12px);
-}
-[data-theme="dark"] .nav{background:rgba(15,23,42,.92)}
-.nav-inner{
-  max-width:1200px;margin:0 auto;padding:.85rem 1.25rem;
-  display:flex;align-items:center;justify-content:space-between;gap:1rem;
-}
-.logo{display:flex;align-items:center;gap:.5rem;font-weight:800;font-size:1.05rem;color:var(--fg);text-decoration:none}
-.logo-icon{
-  width:30px;height:30px;border-radius:8px;background:var(--red);color:#fff;
-  display:grid;place-items:center;font-size:1rem;flex-shrink:0;
-}
-.nav-actions{display:flex;align-items:center;gap:.5rem}
-.theme-btn{
-  width:36px;height:36px;border-radius:var(--radius-sm);
-  border:1px solid var(--border);background:var(--card);color:var(--fg);
-  cursor:pointer;display:grid;place-items:center;font-size:.95rem;
-}
-.theme-btn:hover{border-color:var(--red)}
-.back-link{
-  font-size:.85rem;font-weight:600;color:var(--fg2);text-decoration:none;
-  padding:.45rem .8rem;border-radius:var(--radius-sm);border:1px solid var(--border);
-  white-space:nowrap;
-}
-.back-link:hover{color:var(--red);border-color:var(--red)}
-/* Primary nav — same links as the site header, so this page is not a dead end */
-.nav-links{display:flex;align-items:center;gap:.25rem;list-style:none;margin:0;padding:0}
-.nav-links a{
-  color:var(--fg2);font-size:.875rem;font-weight:500;text-decoration:none;
-  padding:.5rem .7rem;border-radius:var(--radius-sm);white-space:nowrap;
-  transition:background .15s,color .15s;
-}
-.nav-links a:hover{color:var(--fg);background:var(--bg2);text-decoration:none}
 
 /* ── Document ── */
 main{max-width:860px;margin:0 auto;padding:2.5rem 1.25rem 4rem}
@@ -144,18 +100,7 @@ a:hover{color:var(--red-dark)}
 .footer-inner a{color:var(--fg2);text-decoration:none;font-weight:600}
 .footer-inner a:hover{color:var(--red)}
 
-/* Narrow screens: the links move to their own row and scroll sideways rather
-   than being hidden — there is no hamburger on this page to fall back to. */
-@media(max-width:860px){
-  .nav-inner{flex-wrap:wrap;row-gap:.35rem}
-  .nav-inner nav{order:3;width:100%;min-width:0}
-  .nav-links{overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch}
-  .nav-links::-webkit-scrollbar{display:none}
-}
-
 @media(max-width:520px){
-  .nav-inner{padding:.75rem 1rem}
-  .logo{font-size:.95rem}
   main{padding:2rem 1rem 3rem}
 }
 </style>
@@ -163,11 +108,13 @@ a:hover{color:var(--red-dark)}
 <body>
 <a href="#content" class="skip-link">Skip to content</a>
 
+<!-- NAV — mirrors the site header on index.html; anchors are absolute so they
+     land on the home page rather than looking for sections on this page. -->
 <header class="nav">
   <div class="nav-inner">
-    <a href="/" class="logo">
-      <span class="logo-icon" aria-hidden="true">&#x26E8;</span>
-      BlockMyCard<span style="color:var(--red)">.in</span>
+    <a href="/" class="nav-logo">
+      <div class="nav-logo-icon" aria-hidden="true">&#x26E8;</div>
+      <div class="nav-logo-text">BlockMyCard<span>.in</span></div>
     </a>
     <nav aria-label="Primary navigation">
       <ul class="nav-links">
@@ -179,8 +126,93 @@ a:hover{color:var(--red-dark)}
       </ul>
     </nav>
     <div class="nav-actions">
-      <button class="theme-btn" id="theme-btn" type="button" aria-label="Toggle dark mode">&#x1F319;</button>
-      <a href="/" class="back-link">&larr; Back to site</a>
+      <!-- Font size -->
+      <div style="position:relative">
+        <button class="nav-icon-btn"
+                id="font-dd-btn"
+                onclick="toggleDropdown('font-dd')"
+                aria-label="Font size"
+                aria-haspopup="menu"
+                aria-controls="font-dd"
+                aria-expanded="false"
+                title="Font size">&#x1D400;</button>
+        <div class="dropdown" id="font-dd" role="menu" aria-label="Font size options">
+          <span class="dropdown-label" id="txt-a11y-font">Font size</span>
+          <div class="font-grid">
+            <button class="font-btn" style="font-size:12px" data-size="sm" onclick="setFont('sm')" id="font-sm" role="menuitemradio" aria-checked="false" aria-label="Small font">A</button>
+            <button class="font-btn active" style="font-size:15px" data-size="md" onclick="setFont('md')" id="font-md" role="menuitemradio" aria-checked="true" aria-label="Medium font">A</button>
+            <button class="font-btn" style="font-size:18px" data-size="lg" onclick="setFont('lg')" id="font-lg" role="menuitemradio" aria-checked="false" aria-label="Large font">A</button>
+            <button class="font-btn" style="font-size:21px" data-size="xl" onclick="setFont('xl')" id="font-xl" role="menuitemradio" aria-checked="false" aria-label="Extra large font">A</button>
+          </div>
+        </div>
+      </div>
+      <!-- Language -->
+      <div style="position:relative">
+        <button class="nav-icon-btn"
+                id="lang-dd-btn"
+                onclick="toggleDropdown('lang-dd')"
+                aria-label="Language"
+                aria-haspopup="menu"
+                aria-controls="lang-dd"
+                aria-expanded="false"
+                title="Language">&#x1F310;</button>
+        <div class="dropdown" id="lang-dd" role="menu" aria-label="Language options">
+          <span class="dropdown-label" id="txt-a11y-lang">Language</span>
+          <button class="dropdown-btn" onclick="setLang('bn')" id="lang-bn" role="menuitemradio" aria-checked="false"><span class="native">বাংলা</span><span class="en">Bengali</span></button>
+          <button class="dropdown-btn active" onclick="setLang('en')" id="lang-en" role="menuitemradio" aria-checked="true"><span class="native">English</span><span class="en">English</span></button>
+          <button class="dropdown-btn" onclick="setLang('gu')" id="lang-gu" role="menuitemradio" aria-checked="false"><span class="native">ગુજરાતી</span><span class="en">Gujarati</span></button>
+          <button class="dropdown-btn" onclick="setLang('hi')" id="lang-hi" role="menuitemradio" aria-checked="false"><span class="native">हिन्दी</span><span class="en">Hindi</span></button>
+          <button class="dropdown-btn" onclick="setLang('kn')" id="lang-kn" role="menuitemradio" aria-checked="false"><span class="native">ಕನ್ನಡ</span><span class="en">Kannada</span></button>
+          <button class="dropdown-btn" onclick="setLang('ml')" id="lang-ml" role="menuitemradio" aria-checked="false"><span class="native">മലയാളം</span><span class="en">Malayalam</span></button>
+          <button class="dropdown-btn" onclick="setLang('mr')" id="lang-mr" role="menuitemradio" aria-checked="false"><span class="native">मराठी</span><span class="en">Marathi</span></button>
+          <button class="dropdown-btn" onclick="setLang('or')" id="lang-or" role="menuitemradio" aria-checked="false"><span class="native">ଓଡ଼ିଆ</span><span class="en">Odia</span></button>
+          <button class="dropdown-btn" onclick="setLang('ta')" id="lang-ta" role="menuitemradio" aria-checked="false"><span class="native">தமிழ்</span><span class="en">Tamil</span></button>
+          <button class="dropdown-btn" onclick="setLang('te')" id="lang-te" role="menuitemradio" aria-checked="false"><span class="native">తెలుగు</span><span class="en">Telugu</span></button>
+        </div>
+      </div>
+      <!-- Dark mode -->
+      <button class="nav-icon-btn" onclick="toggleTheme()" aria-label="Toggle colour theme" id="theme-btn" title="Toggle theme">&#x1F319;</button>
+      <!-- Register CTA -->
+      <a href="/#card-tool" class="nav-cta" id="nav-cta">Register/ Block <span aria-hidden="true">&#x2192;</span></a>
+      <button class="nav-icon-btn mobile-only"
+              onclick="toggleMobileMenu()"
+              aria-label="Open navigation menu"
+              aria-haspopup="true"
+              aria-controls="mobile-menu"
+              aria-expanded="false"
+              id="mobile-menu-btn">&#x2630;</button>
+    </div>
+  </div>
+  <!-- Mobile menu -->
+  <div class="mobile-menu" id="mobile-menu" role="navigation" aria-label="Mobile navigation">
+    <div class="mobile-menu-inner">
+      <a href="/#features" onclick="closeMobileMenu()">Features</a>
+      <a href="/#stats" onclick="closeMobileMenu()">Fraud Data</a>
+      <a href="/#how" onclick="closeMobileMenu()">How it Works</a>
+      <a href="/#block" onclick="closeMobileMenu()">Block Steps</a>
+      <a href="/#card-tool" onclick="closeMobileMenu()">Card Blocker</a>
+      <hr class="mobile-divider"/>
+      <div class="mobile-pref-label" id="txt-m-font">Font size</div>
+      <div class="font-grid" style="margin-bottom:.75rem">
+        <button class="font-btn" style="font-size:12px" data-size="sm" onclick="setFont('sm')" aria-checked="false" role="menuitemradio" aria-label="Small font">A</button>
+        <button class="font-btn active" style="font-size:15px" data-size="md" onclick="setFont('md')" aria-checked="true" role="menuitemradio" aria-label="Medium font">A</button>
+        <button class="font-btn" style="font-size:18px" data-size="lg" onclick="setFont('lg')" aria-checked="false" role="menuitemradio" aria-label="Large font">A</button>
+        <button class="font-btn" style="font-size:21px" data-size="xl" onclick="setFont('xl')" aria-checked="false" role="menuitemradio" aria-label="Extra large font">A</button>
+      </div>
+      <div class="mobile-pref-label" id="txt-m-lang">Language</div>
+      <div class="mobile-lang-grid">
+        <button class="dropdown-btn" onclick="setLang('bn');closeMobileMenu()" id="mlang-bn" aria-checked="false" role="menuitemradio"><span class="native">বাংলা</span></button>
+        <button class="dropdown-btn active" onclick="setLang('en');closeMobileMenu()" id="mlang-en" aria-checked="true" role="menuitemradio"><span class="native">English</span></button>
+        <button class="dropdown-btn" onclick="setLang('gu');closeMobileMenu()" id="mlang-gu" aria-checked="false" role="menuitemradio"><span class="native">ગુજરાતી</span></button>
+        <button class="dropdown-btn" onclick="setLang('hi');closeMobileMenu()" id="mlang-hi" aria-checked="false" role="menuitemradio"><span class="native">हिन्दी</span></button>
+        <button class="dropdown-btn" onclick="setLang('kn');closeMobileMenu()" id="mlang-kn" aria-checked="false" role="menuitemradio"><span class="native">ಕನ್ನಡ</span></button>
+        <button class="dropdown-btn" onclick="setLang('ml');closeMobileMenu()" id="mlang-ml" aria-checked="false" role="menuitemradio"><span class="native">മലയാളം</span></button>
+        <button class="dropdown-btn" onclick="setLang('mr');closeMobileMenu()" id="mlang-mr" aria-checked="false" role="menuitemradio"><span class="native">मराठी</span></button>
+        <button class="dropdown-btn" onclick="setLang('or');closeMobileMenu()" id="mlang-or" aria-checked="false" role="menuitemradio"><span class="native">ଓଡ଼ିଆ</span></button>
+        <button class="dropdown-btn" onclick="setLang('ta');closeMobileMenu()" id="mlang-ta" aria-checked="false" role="menuitemradio"><span class="native">தமிழ்</span></button>
+        <button class="dropdown-btn" onclick="setLang('te');closeMobileMenu()" id="mlang-te" aria-checked="false" role="menuitemradio"><span class="native">తెలుగు</span></button>
+      </div>
+      <a href="/#card-tool" onclick="closeMobileMenu()" class="nav-cta" style="justify-content:center;margin-top:.5rem" id="mnav-cta">Register Free &#x2192;</a>
     </div>
   </div>
 </header>
@@ -306,22 +338,5 @@ a:hover{color:var(--red-dark)}
   </div>
 </footer>
 
-<script>
-(function(){
-  var btn = document.getElementById('theme-btn');
-  function paint(){
-    var dark = document.documentElement.getAttribute('data-theme') === 'dark';
-    btn.textContent = dark ? '☀️' : '🌙';
-    btn.setAttribute('aria-label', dark ? 'Switch to light mode' : 'Switch to dark mode');
-  }
-  btn.addEventListener('click', function(){
-    var next = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
-    document.documentElement.setAttribute('data-theme', next);
-    try { localStorage.setItem('bmc_theme', next); } catch (e) {}
-    paint();
-  });
-  paint();
-})();
-</script>
 </body>
 </html>
