@@ -91,14 +91,21 @@ a:hover{color:var(--red-dark)}
 .contact-card p:last-child{margin-bottom:0}
 
 /* ── Footer ── */
-.footer{border-top:1px solid var(--border);background:var(--bg2)}
-.footer-inner{
-  max-width:860px;margin:0 auto;padding:2rem 1.25rem;
-  display:flex;flex-wrap:wrap;gap:1rem;align-items:center;justify-content:space-between;
-  font-size:.85rem;color:var(--fg2);
-}
-.footer-inner a{color:var(--fg2);text-decoration:none;font-weight:600}
-.footer-inner a:hover{color:var(--red)}
+.footer{background:var(--bg2);border-top:1px solid var(--border);padding:3rem 1.5rem 1.5rem}
+.footer-inner{max-width:1200px;margin:0 auto;display:grid;grid-template-columns:2fr 1fr 1fr;gap:2rem;padding-bottom:2rem;border-bottom:1px solid var(--border)}
+@media(max-width:700px){.footer-inner{grid-template-columns:1fr}}
+.footer-logo{display:flex;align-items:center;gap:.5rem;font-weight:800;font-size:1.05rem;color:var(--fg);text-decoration:none;margin-bottom:.6rem}
+.footer-logo-icon{width:32px;height:32px;background:var(--red);border-radius:8px;display:grid;place-items:center;color:#fff;font-size:.9rem}
+.footer-brand p{font-size:.85rem;color:var(--fg2);max-width:260px;line-height:1.6;margin-bottom:.5rem}
+.footer-brand-sub{font-size:.78rem;color:var(--fg2)}
+.footer-col h4{font-size:.78rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--fg);margin-bottom:.85rem}
+.footer-col ul{list-style:none;display:flex;flex-direction:column;gap:.5rem}
+.footer-col a{text-decoration:none;font-size:.875rem;color:var(--fg2);transition:color .15s}
+.footer-col a:hover{color:var(--fg)}
+.footer-link-soon{font-size:.875rem;color:var(--fg2);cursor:default}
+.footer-link-soon::after{content:' (soon)';font-size:.7rem;opacity:.6}
+.footer-bottom-bar{max-width:1200px;margin:.75rem auto 0}
+.footer-bottom{font-size:.78rem;color:var(--fg2);margin-bottom:.25rem}
 
 @media(max-width:520px){
   main{padding:2rem 1rem 3rem}
@@ -333,8 +340,36 @@ a:hover{color:var(--red-dark)}
 
 <footer class="footer">
   <div class="footer-inner">
-    <span>&copy; 2026 Vertical Infinity Pvt. Ltd.</span>
-    <span><a href="/">Back to BlockMyCard.in</a></span>
+    <div class="footer-brand">
+      <a href="/" class="footer-logo">
+        <div class="footer-logo-icon" aria-hidden="true">&#x26E8;</div>
+        BlockMyCard<span style="color:var(--red)">.in</span>
+      </a>
+      <p>Made in India with &#x1F499; for every family, small business &amp; senior citizen.</p>
+      <div class="footer-brand-sub"><span aria-hidden="true">&#x1F6E1;&#xFE0F;</span> Helping Indian cardholders act fast</div>
+    </div>
+    <div class="footer-col">
+      <h4>Product</h4>
+      <ul>
+        <li><a href="/#how">How it works</a></li>
+        <li><a href="/#features">Features</a></li>
+        <li><span class="footer-link-soon">Family Circle</span></li>
+        <li><span class="footer-link-soon">Pricing</span></li>
+      </ul>
+    </div>
+    <div class="footer-col">
+      <h4>Company</h4>
+      <ul>
+        <li><a href="/about.html">About</a></li>
+        <li><a href="/trust-security.html">Trust &amp; Security</a></li>
+        <li><a href="/privacy.html">Privacy Policy</a></li>
+        <li><a href="/terms-and-conditions.html">Terms and Conditions</a></li>
+        <li><a href="mailto:support@blockmycard.in">Contact</a></li>
+      </ul>
+    </div>
+  </div>
+  <div class="footer-bottom-bar">
+    <div class="footer-bottom">&#x00A9; 2026 BlockMyCard.in &middot; All rights reserved &middot; An initiative for a safer digital India.</div>
   </div>
 </footer>
 
