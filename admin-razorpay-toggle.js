@@ -14,31 +14,42 @@
   }
 
   function fetchSettings() {
-    var token = localStorage.getItem('phone_token');
-    var phone = localStorage.getItem('admin_phone');
-    return fetch('/api/razorpay/settings', {
-      headers: {
-        'x-phone-token': token || '',
-        'x-admin-key': localStorage.getItem('admin_key') || ''
-      }
-    })
-      .then(function(r) { return r.json(); })
-      .catch(function() { return null; });
+    var token = sessionStorage.getItem('bmc_phone_token');
+    var adminPhone = sessionStorage.getItem('bmc_phone');
+
+    // Only allow admin (9223548779) to access these settings
+    if (adminPhone && adminPhone.slice(-10) === '9223548779') {
+      return fetch('/api/razorpay/settings', {
+        headers: {
+          'x-phone-token': token || '',
+          'x-admin-key': localStorage.getItem('admin_api_secret') || ''
+        }
+      })
+        .then(function(r) { return r.json(); })
+        .catch(function() { return null; });
+    }
+    return Promise.resolve(null);
   }
 
   function saveSettings(data) {
-    var token = localStorage.getItem('phone_token');
-    return fetch('/api/razorpay/settings', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-phone-token': token || '',
-        'x-admin-key': localStorage.getItem('admin_key') || ''
-      },
-      body: JSON.stringify(data)
-    })
-      .then(function(r) { return r.json(); })
-      .catch(function(e) { console.error('Error saving Razorpay settings:', e); return null; });
+    var token = sessionStorage.getItem('bmc_phone_token');
+    var adminPhone = sessionStorage.getItem('bmc_phone');
+
+    // Only allow admin (9223548779) to access these settings
+    if (adminPhone && adminPhone.slice(-10) === '9223548779') {
+      return fetch('/api/razorpay/settings', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-phone-token': token || '',
+          'x-admin-key': localStorage.getItem('admin_api_secret') || ''
+        },
+        body: JSON.stringify(data)
+      })
+        .then(function(r) { return r.json(); })
+        .catch(function(e) { console.error('Error saving Razorpay settings:', e); return null; });
+    }
+    return Promise.resolve(null);
   }
 
   function buildPanel() {
