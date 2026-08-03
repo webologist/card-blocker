@@ -12,6 +12,7 @@
         "next": "^14",
         "nodemailer": "^9.0.3",
         "pg": "^8.22.0",
+        "razorpay": "^2.9.8",
         "react": "^18",
         "react-dom": "^18"
     },

@@ -6,6 +6,7 @@ const fs = require('fs');
 const { createClient } = require('@supabase/supabase-js');
 const { checkAdminKey, checkAdminAccess } = require('./lib/admin-auth');
 const { getSettings, saveSettings, claimLoginEmail } = require('./lib/email-settings-store');
+const { getSettings: getRazorpaySettings, saveSettings: saveRazorpaySettings, maskSettings: maskRazorpaySettings } = require('./lib/razorpay-settings-store');
 const { sendEmail, maskSettings } = require('./lib/email-providers');
 const { validateContact, buildContactEmail, contactRecipient, storageKey } = require('./lib/contact');
 
@@ -303,6 +304,121 @@ app.post('/api/contact', async (req, res) => {
   res.json({ ok: true });
 });
 
+// ── Razorpay Admin Settings ──
+app.get('/api/razorpay/settings', async (req, res) => {
+  const auth = await checkAdminAccess(req);
+  if (!auth.ok) return res.status(401).json({ error: auth.error });
+
+  try {
+    const settings = await getRazorpaySettings(supabase);
+    res.json({ ok: true, data: maskRazorpaySettings(settings) });
+  } catch (e) {
+    console.error('[razorpay] get settings error:', e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.post('/api/razorpay/settings', async (req, res) => {
+  const auth = await checkAdminAccess(req);
+  if (!auth.ok) return res.status(401).json({ error: auth.error });
+
+  const { enabled, razorpay_key_id, razorpay_key_secret } = req.body;
+
+  if (typeof enabled !== 'boolean') {
+    return res.status(400).json({ error: 'enabled must be boolean' });
+  }
+
+  try {
+    const patch = { enabled };
+    if (razorpay_key_id !== undefined) patch.razorpay_key_id = razorpay_key_id;
+    if (razorpay_key_secret !== undefined) patch.razorpay_key_secret = razorpay_key_secret;
+
+    const settings = await saveRazorpaySettings(supabase, patch);
+    res.json({ ok: true, data: maskRazorpaySettings(settings) });
+  } catch (e) {
+    console.error('[razorpay] save settings error:', e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// Get public Razorpay key (for frontend checkout)
+app.get('/api/razorpay/public-key', async (req, res) => {
+  try {
+    const settings = await getRazorpaySettings(supabase);
+    if (!settings || !settings.enabled || !settings.razorpay_key_id) {
+      return res.status(503).json({ error: 'Razorpay is not configured' });
+    }
+    res.json({ key_id: settings.razorpay_key_id });
+  } catch (e) {
+    console.error('[razorpay] get public key error:', e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// Create Razorpay order (backend)
+app.post('/api/razorpay/create-order', async (req, res) => {
+  const { amount, description, phone } = req.body;
+
+  if (!amount || typeof amount !== 'number' || amount <= 0) {
+    return res.status(400).json({ error: 'Invalid amount' });
+  }
+
+  try {
+    const settings = await getRazorpaySettings(supabase);
+    if (!settings || !settings.enabled || !settings.razorpay_key_id || !settings.razorpay_key_secret) {
+      return res.status(503).json({ error: 'Razorpay is not configured' });
+    }
+
+    const Razorpay = require('razorpay');
+    const razorpay = new Razorpay({
+      key_id: settings.razorpay_key_id,
+      key_secret: settings.razorpay_key_secret
+    });
+
+    const order = await razorpay.orders.create({
+      amount: Math.round(amount * 100), // Convert to paise
+      currency: 'INR',
+      receipt: `order_${Date.now()}_${phone || 'guest'}`,
+      description: description || 'BlockMyCard Premium'
+    });
+
+    res.json({ ok: true, order });
+  } catch (e) {
+    console.error('[razorpay] create order error:', e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// Verify Razorpay payment (backend)
+app.post('/api/razorpay/verify-payment', async (req, res) => {
+  const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = req.body;
+
+  if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature) {
+    return res.status(400).json({ error: 'Missing payment details' });
+  }
+
+  try {
+    const settings = await getRazorpaySettings(supabase);
+    if (!settings || !settings.enabled || !settings.razorpay_key_secret) {
+      return res.status(503).json({ error: 'Razorpay is not configured' });
+    }
+
+    const crypto = require('crypto');
+    const hmac = crypto.createHmac('sha256', settings.razorpay_key_secret);
+    hmac.update(`${razorpay_order_id}|${razorpay_payment_id}`);
+    const generated_signature = hmac.digest('hex');
+
+    if (generated_signature !== razorpay_signature) {
+      return res.status(400).json({ ok: false, error: 'Payment verification failed' });
+    }
+
+    res.json({ ok: true, message: 'Payment verified successfully' });
+  } catch (e) {
+    console.error('[razorpay] verify payment error:', e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
 // ── Inject storage bridge into index.html ──
 function sendApp(req, res) {
   let html = fs.readFileSync(path.join(__dirname, 'index.html'), 'utf8');
@@ -355,6 +471,21 @@ app.listen(PORT, async () => {
   } else if (!emailErr) {
     console.log('  Database: email_settings/login_email_log OK');
   }
+
+  // Check if the razorpay_settings table exists
+  const { error: rzpErr } = await supabase.from('razorpay_settings').select('id').limit(1);
+  if (rzpErr && (rzpErr.code === '42P01' || rzpErr.code === 'PGRST205')) {
+    console.log('  WARNING: razorpay_settings table missing!');
+    console.log('  Run this in Supabase SQL editor:');
+    console.log(`  CREATE TABLE razorpay_settings (
+    id INT PRIMARY KEY DEFAULT 1, enabled BOOLEAN DEFAULT false,
+    razorpay_key_id TEXT, razorpay_key_secret TEXT,
+    updated_at TIMESTAMPTZ DEFAULT NOW(), CONSTRAINT razorpay_settings_singleton CHECK (id = 1));
+  ALTER TABLE razorpay_settings ENABLE ROW LEVEL SECURITY;`);
+  } else if (!rzpErr) {
+    console.log('  Database: razorpay_settings OK');
+  }
+
   if (!process.env.ADMIN_API_SECRET) {
     console.log('  WARNING: ADMIN_API_SECRET is not set - email integration admin endpoints will reject all requests.');
   }

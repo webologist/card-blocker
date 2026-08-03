@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BlockMyCard Premium - Payment</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #fef2f2 0%, #fff 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 500px;
+            width: 100%;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+            padding: 40px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .logo {
+            width: 50px;
+            height: 50px;
+            background: #d63a2a;
+            border-radius: 10px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 28px;
+            margin-bottom: 15px;
+        }
+
+        h1 {
+            font-size: 24px;
+            color: #0f172a;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            color: #64748b;
+            font-size: 14px;
+        }
+
+        .plan-card {
+            background: #f8f9fa;
+            border: 2px solid #e5e7eb;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 25px;
+        }
+
+        .plan-name {
+            font-size: 18px;
+            font-weight: 600;
+            color: #0f172a;
+            margin-bottom: 10px;
+        }
+
+        .price {
+            font-size: 32px;
+            font-weight: 900;
+            color: #d63a2a;
+            margin-bottom: 15px;
+        }
+
+        .price-desc {
+            color: #64748b;
+            font-size: 13px;
+            margin-bottom: 15px;
+        }
+
+        .features {
+            list-style: none;
+        }
+
+        .features li {
+            padding: 8px 0;
+            color: #475569;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .features li::before {
+            content: '✓';
+            color: #16a34a;
+            font-weight: bold;
+            font-size: 16px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            font-size: 13px;
+            font-weight: 600;
+            color: #0f172a;
+            margin-bottom: 6px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        input {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+            font-size: 14px;
+            font-family: inherit;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: #d63a2a;
+            box-shadow: 0 0 0 3px rgba(214, 58, 42, 0.1);
+        }
+
+        .button {
+            width: 100%;
+            padding: 12px 24px;
+            background: #d63a2a;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.15s, transform 0.1s;
+            margin-bottom: 15px;
+        }
+
+        .button:hover {
+            background: #b72e1e;
+            transform: translateY(-1px);
+        }
+
+        .button:active {
+            transform: translateY(0);
+        }
+
+        .button:disabled {
+            background: #cbd5e1;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .button-secondary {
+            background: transparent;
+            color: #475569;
+            border: 1px solid #cbd5e1;
+        }
+
+        .button-secondary:hover {
+            background: #f8f9fa;
+            border-color: #94a3b8;
+        }
+
+        .security-info {
+            background: #f0fdf4;
+            border: 1px solid #bbf7d0;
+            border-radius: 6px;
+            padding: 12px;
+            margin-top: 20px;
+            color: #15803d;
+            font-size: 12px;
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
+        }
+
+        .security-icon {
+            flex-shrink: 0;
+            font-size: 16px;
+        }
+
+        .status {
+            text-align: center;
+            padding: 15px;
+            border-radius: 6px;
+            margin: 15px 0;
+            display: none;
+        }
+
+        .status.success {
+            background: #f0fdf4;
+            color: #15803d;
+            border: 1px solid #bbf7d0;
+            display: block;
+        }
+
+        .status.error {
+            background: #fef2f2;
+            color: #d63a2a;
+            border: 1px solid #fecaca;
+            display: block;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            color: #64748b;
+            padding: 20px;
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #e5e7eb;
+            border-top-color: #d63a2a;
+            border-radius: 50%;
+            animation: spin 0.6s linear infinite;
+            margin-right: 10px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="logo">🛡️</div>
+            <h1>BlockMyCard Premium</h1>
+            <p class="subtitle">Upgrade for advanced features</p>
+        </div>
+
+        <div class="plan-card">
+            <div class="plan-name">Annual Plan</div>
+            <div class="price">₹999</div>
+            <div class="price-desc">One-time payment, valid for 12 months</div>
+
+            <ul class="features">
+                <li>Unlimited card blocking</li>
+                <li>Priority support</li>
+                <li>Emergency hotline access</li>
+                <li>Advanced analytics</li>
+                <li>Export card data</li>
+            </ul>
+        </div>
+
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            Processing your payment...
+        </div>
+
+        <div class="status" id="status"></div>
+
+        <div id="form-section">
+            <div class="form-group">
+                <label for="email">Email Address</label>
+                <input type="email" id="email" placeholder="you@example.com">
+            </div>
+
+            <div class="form-group">
+                <label for="phone">Phone Number</label>
+                <input type="tel" id="phone" placeholder="+91 98765 43210">
+            </div>
+
+            <div class="form-group">
+                <label for="name">Full Name</label>
+                <input type="text" id="name" placeholder="Your Name">
+            </div>
+
+            <button class="button" id="pay-btn" onclick="startPayment()">
+                Pay ₹999 with Razorpay
+            </button>
+
+            <button class="button button-secondary" onclick="history.back()">
+                Cancel
+            </button>
+
+            <div class="security-info">
+                <div class="security-icon">🔒</div>
+                <div>Your payment is secure and encrypted. Razorpay is PCI DSS Level 1 compliant.</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Razorpay Checkout Script -->
+    <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+
+    <!-- Razorpay Checkout Module -->
+    <script src="./lib/razorpay-checkout.js"></script>
+
+    <script>
+        const AMOUNT = 999; // INR
+        const formSection = document.getElementById('form-section');
+        const loading = document.getElementById('loading');
+        const status = document.getElementById('status');
+        const payBtn = document.getElementById('pay-btn');
+
+        const checkout = new RazorpayCheckout({
+            onSuccess: handlePaymentSuccess,
+            onError: handlePaymentError,
+            onClose: handlePaymentClose
+        });
+
+        // Check if Razorpay is enabled on page load
+        checkRazorpayStatus();
+
+        async function checkRazorpayStatus() {
+            try {
+                const enabled = await checkout.isEnabled();
+                if (!enabled) {
+                    showError('Payment gateway is not currently available. Please try again later.');
+                    payBtn.disabled = true;
+                }
+            } catch (error) {
+                console.error('Error checking Razorpay status:', error);
+            }
+        }
+
+        function startPayment() {
+            const email = document.getElementById('email').value.trim();
+            const phone = document.getElementById('phone').value.trim();
+            const name = document.getElementById('name').value.trim();
+
+            // Validate inputs
+            if (!email || !phone) {
+                showError('Please enter both email and phone number.');
+                return;
+            }
+
+            if (!email.includes('@')) {
+                showError('Please enter a valid email address.');
+                return;
+            }
+
+            // Hide form, show loading
+            formSection.style.display = 'none';
+            loading.style.display = 'block';
+
+            // Start checkout
+            checkout.checkout(AMOUNT, {
+                description: 'BlockMyCard Premium - Annual Plan',
+                email: email,
+                phone: phone,
+                name: name || 'User'
+            }).catch(error => {
+                handlePaymentError(error);
+            });
+        }
+
+        function handlePaymentSuccess(response) {
+            loading.style.display = 'none';
+
+            showSuccess(
+                `Payment successful! <br>` +
+                `Order ID: ${response.orderId}<br>` +
+                `Payment ID: ${response.paymentId}<br><br>` +
+                `Your premium access has been activated. Check your email for confirmation.`
+            );
+
+            payBtn.disabled = true;
+
+            // Log to console for debugging
+            console.log('Payment successful:', response);
+
+            // Optional: Send confirmation to your backend
+            logPaymentToBackend(response);
+
+            // Redirect after 3 seconds
+            setTimeout(() => {
+                window.location.href = '/dashboard?upgraded=true';
+            }, 3000);
+        }
+
+        function handlePaymentError(error) {
+            loading.style.display = 'none';
+            formSection.style.display = 'block';
+
+            showError(
+                `Payment failed: ${error.message || 'Unknown error'}<br>` +
+                `<small>Please check your payment details and try again.</small>`
+            );
+
+            console.error('Payment error:', error);
+        }
+
+        function handlePaymentClose() {
+            loading.style.display = 'none';
+            formSection.style.display = 'block';
+            console.log('Payment modal closed by user');
+        }
+
+        function showError(message) {
+            status.className = 'status error';
+            status.innerHTML = '❌ ' + message;
+        }
+
+        function showSuccess(message) {
+            status.className = 'status success';
+            status.innerHTML = '✓ ' + message;
+        }
+
+        function logPaymentToBackend(response) {
+            // Optional: Send payment details to your backend for logging
+            fetch('/api/log-payment', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    orderId: response.orderId,
+                    paymentId: response.paymentId,
+                    signature: response.signature,
+                    email: document.getElementById('email').value,
+                    phone: document.getElementById('phone').value,
+                    timestamp: new Date().toISOString()
+                })
+            }).catch(err => console.error('Error logging payment:', err));
+        }
+    </script>
+</body>
+</html>
